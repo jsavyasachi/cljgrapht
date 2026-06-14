@@ -20,11 +20,14 @@ Python, and graph algorithms are irregular and pointer-chasing, so they never
 vectorize into a C core the way numpy workloads do. On the JVM the same
 algorithms run on JIT-compiled code with real threads.
 
-The existing Clojure graph libraries (`loom`, `ubergraph`) are dormant and thin
-on algorithms. `cljgrapht` is a thin layer over JGraphT - actively maintained,
-with a deep algorithm catalog (shortest paths, centrality, flow, matching,
-coloring, isomorphism, and more) - exposed with a Clojure-shaped API. Vertices
-are any Clojure value; results come back as vectors, sets, and maps.
+`loom` and `ubergraph` are the established pure-Clojure graph libraries, and if
+they cover your needs they're a great fit. `cljgrapht` takes a different tack:
+instead of implementing algorithms in Clojure, it wraps [JGraphT](https://jgrapht.org/),
+so you get its large, actively-developed algorithm catalog (shortest paths,
+centrality, flow, matching, coloring, isomorphism, and more) running on the JVM,
+behind a Clojure-shaped API. Reach for it when you want an algorithm the
+pure-Clojure libraries don't ship, or JGraphT's performance on large graphs.
+Vertices are any Clojure value; results come back as vectors, sets, and maps.
 
 This is a performance wrapper, not a persistent data structure: graphs are
 JGraphT's native mutable objects. Constructors and mutators return the graph for
