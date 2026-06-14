@@ -36,7 +36,7 @@ threading, but they mutate in place.
 
 Requires **JDK 11+** (JGraphT 1.5.x).
 
-## Install
+## Installation
 
 Leiningen (`project.clj`):
 
