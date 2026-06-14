@@ -3,6 +3,12 @@
 All notable changes to this project are documented here. This change log follows
 the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [0.1.1] - 2026-06-13
+
+### Changed
+- Reword the README "Why" section to describe cljgrapht by its capabilities and
+  credit loom/ubergraph, rather than disparaging them. Docs only; no code change.
+
 ## [0.1.0] - 2026-06-13
 
 Initial release: an idiomatic Clojure graph library backed by JGraphT 1.5.3.
