@@ -40,13 +40,13 @@ Requires **JDK 11+** (JGraphT 1.5.x).
 Leiningen (`project.clj`):
 
 ```clojure
-[net.clojars.savya/cljgrapht "0.1.2"]
+[net.clojars.savya/cljgrapht "0.1.3"]
 ```
 
 tools.deps (`deps.edn`):
 
 ```clojure
-net.clojars.savya/cljgrapht {:mvn/version "0.1.2"}
+net.clojars.savya/cljgrapht {:mvn/version "0.1.3"}
 ```
 
 ## Usage
@@ -85,6 +85,35 @@ net.clojars.savya/cljgrapht {:mvn/version "0.1.2"}
 - Ordering & cycles: `topological-sort`, `cycle?`, `vertices-on-cycles`
 - Spanning: `minimum-spanning-tree`
 - Centrality: `betweenness-centrality`, `closeness-centrality`, `pagerank`
+
+## Performance
+
+cljgrapht runs JGraphT's JIT-compiled Java algorithms instead of implementing
+them in Clojure, so it's substantially faster on non-trivial graphs. Random
+weighted digraphs, [criterium](https://github.com/hugoduncan/criterium)
+`quick-bench`, Clojure 1.12.5 / JDK 17, mean time, graph construction excluded
+from the algorithm rows. Source: [`bench/bench.clj`](bench/bench.clj).
+
+**2,000 vertices / ~10k edges**
+
+| Task | loom 1.0.2 | ubergraph 0.9.0 | cljgrapht |
+|---|---|---|---|
+| Build from edge list | 201 ms | 27 ms | 4.7 ms |
+| Weighted shortest path (Dijkstra) | 7.3 ms | 5.2 ms | 0.27 ms |
+| Connected components | 6.0 ms | 22 ms | 1.9 ms |
+
+**10,000 vertices / ~50k edges**
+
+| Task | loom 1.0.2 | ubergraph 0.9.0 | cljgrapht |
+|---|---|---|---|
+| Build from edge list | 963 ms | 182 ms | 27 ms |
+| Weighted shortest path (Dijkstra) | 20 ms | 8.1 ms | 1.1 ms |
+| Connected components | 28 ms | 95 ms | 13 ms |
+
+This is the expected tradeoff of a native-Java engine, not a knock on loom or
+ubergraph: both are pure-Clojure libraries with persistent, immutable graphs,
+which cljgrapht gives up for speed. Reach for cljgrapht when graph size or
+algorithm depth is the constraint.
 
 ## License
 

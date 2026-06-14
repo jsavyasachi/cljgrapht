@@ -3,6 +3,12 @@
 All notable changes to this project are documented here. This change log follows
 the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [0.1.3] - 2026-06-13
+
+### Added
+- README "Performance" section benchmarking cljgrapht against loom and ubergraph,
+  plus a reproducible `bench/` harness (criterium).
+
 ## [0.1.2] - 2026-06-13
 
 ### Fixed
