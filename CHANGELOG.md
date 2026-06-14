@@ -3,6 +3,11 @@
 All notable changes to this project are documented here. This change log follows
 the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [0.1.2] - 2026-06-13
+
+### Fixed
+- Correct the copyright attribution in the README to "Savyasachi". Docs only.
+
 ## [0.1.1] - 2026-06-13
 
 ### Changed

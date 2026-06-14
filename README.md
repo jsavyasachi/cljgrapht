@@ -40,13 +40,13 @@ Requires **JDK 11+** (JGraphT 1.5.x).
 Leiningen (`project.clj`):
 
 ```clojure
-[net.clojars.savya/cljgrapht "0.1.1"]
+[net.clojars.savya/cljgrapht "0.1.2"]
 ```
 
 tools.deps (`deps.edn`):
 
 ```clojure
-net.clojars.savya/cljgrapht {:mvn/version "0.1.1"}
+net.clojars.savya/cljgrapht {:mvn/version "0.1.2"}
 ```
 
 ## Usage
@@ -88,7 +88,7 @@ net.clojars.savya/cljgrapht {:mvn/version "0.1.1"}
 
 ## License
 
-Copyright © 2026 Savya Sachi Jha
+Copyright © 2026 Savyasachi
 
 Distributed under the [Eclipse Public License 2.0](https://www.eclipse.org/legal/epl-2.0/),
 the same license JGraphT is available under.
