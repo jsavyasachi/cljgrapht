@@ -1,0 +1,25 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "description": "Track JGraphT (the wrapped engine).",
+  "schedule": ["before 6am on monday"],
+  "dependencyDashboard": true,
+  "labels": ["dependencies"],
+  "lockFileMaintenance": { "enabled": false },
+  "packageRules": [
+    {
+      "description": "Search Clojars and Maven Central.",
+      "matchDatasources": ["clojure"],
+      "registryUrls": [
+        "https://repo.clojars.org",
+        "https://repo.maven.apache.org/maven2"
+      ]
+    },
+    {
+      "matchManagers": ["leiningen"],
+      "matchPackageNames": ["/^org\\.jgrapht:/"],
+      "groupName": "jgrapht"
+    }
+  ],
+  "github-actions": { "enabled": true }
+}
