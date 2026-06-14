@@ -1,6 +1,6 @@
-(ns clj-jgrapht.core-test
+(ns cljgrapht.core-test
   (:require [clojure.test :refer [deftest testing is]]
-            [clj-jgrapht.core :as g]))
+            [cljgrapht.core :as g]))
 
 (deftest empty-constructors
   (testing "empty graphs have no vertices or edges"

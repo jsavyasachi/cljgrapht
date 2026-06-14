@@ -1,12 +1,12 @@
-(ns clj-jgrapht.algo
-  "Graph algorithms over `clj-jgrapht.core` graphs. Every function takes a graph
+(ns cljgrapht.algo
+  "Graph algorithms over `cljgrapht.core` graphs. Every function takes a graph
   and returns plain Clojure data (paths as vectors, components as sets, scores as
   maps), so results compose with the rest of your Clojure code.
 
   Direction matters: `connected-components` is for undirected graphs;
   `strongly-connected-components`, `topological-sort`, and `cycle?` are for
   directed graphs."
-  (:require [clj-jgrapht.core :as core])
+  (:require [cljgrapht.core :as core])
   (:import (org.jgrapht Graph GraphPath)
            (org.jgrapht.alg.shortestpath DijkstraShortestPath
                                          FloydWarshallShortestPaths)

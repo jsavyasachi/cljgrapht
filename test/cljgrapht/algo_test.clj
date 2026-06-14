@@ -1,7 +1,7 @@
-(ns clj-jgrapht.algo-test
+(ns cljgrapht.algo-test
   (:require [clojure.test :refer [deftest testing is]]
-            [clj-jgrapht.core :as g]
-            [clj-jgrapht.algo :as a]))
+            [cljgrapht.core :as g]
+            [cljgrapht.algo :as a]))
 
 (deftest shortest-path-weighted
   (let [gr (g/weighted-digraph [[:a :b 1.0] [:a :c 4.0] [:b :c 1.0] [:c :d 1.0]])]

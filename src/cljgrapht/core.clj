@@ -1,10 +1,10 @@
-(ns clj-jgrapht.core
+(ns cljgrapht.core
   "Idiomatic construction and inspection of graphs backed by JGraphT.
 
   Vertices are arbitrary Clojure values (keywords, strings, numbers, maps).
   Graphs are JGraphT's native mutable objects: constructors and mutators return
   the same graph for threading, but they mutate in place (this is a performance
-  wrapper, not a persistent data structure). Algorithms live in `clj-jgrapht.algo`
+  wrapper, not a persistent data structure). Algorithms live in `cljgrapht.algo`
   and return plain Clojure data."
   (:import (org.jgrapht Graph Graphs)
            (org.jgrapht.graph DefaultEdge DefaultWeightedEdge)

@@ -1,6 +1,6 @@
-(defproject net.clojars.savya/clj-jgrapht "0.1.0-SNAPSHOT"
+(defproject net.clojars.savya/cljgrapht "0.1.0"
   :description "Idiomatic Clojure graph library backed by JGraphT: fast algorithms over Clojure-value vertices"
-  :url "https://github.com/jsavyasachi/clj-jgrapht"
+  :url "https://github.com/jsavyasachi/cljgrapht"
   :license {:name "Eclipse Public License 2.0"
             :url "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [[org.clojure/clojure "1.12.5"]
