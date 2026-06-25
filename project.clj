@@ -10,7 +10,7 @@
                                      :username :env/clojars_username
                                      :password :env/clojars_password
                                      :sign-releases false}]]
-  :profiles {:dev {:dependencies [[org.clojure/test.check "1.1.1"]]}
+  :profiles {:dev {:dependencies [[org.clojure/test.check "1.1.3"]]}
              :clojure-1-10 {:dependencies [[org.clojure/clojure "1.10.3"]]}
              :clojure-1-11 {:dependencies [[org.clojure/clojure "1.11.4"]]}
              :clojure-1-12 {:dependencies [[org.clojure/clojure "1.12.5"]]}}
