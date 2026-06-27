@@ -3,7 +3,6 @@
 [![Clojars Project](https://img.shields.io/clojars/v/net.clojars.savya/cljgrapht.svg)](https://clojars.org/net.clojars.savya/cljgrapht)
 [![cljdoc](https://cljdoc.org/badge/net.clojars.savya/cljgrapht)](https://cljdoc.org/d/net.clojars.savya/cljgrapht)
 [![test](https://github.com/jsavyasachi/cljgrapht/actions/workflows/test.yml/badge.svg)](https://github.com/jsavyasachi/cljgrapht/actions/workflows/test.yml)
-[![Renovate](https://img.shields.io/badge/Renovate-enabled-1A1F6C?style=flat&logo=renovate&logoColor=fff)](https://github.com/jsavyasachi/cljgrapht/issues?q=is%3Aissue+Dependency+Dashboard)
 
 An idiomatic Clojure graph library backed by [JGraphT](https://jgrapht.org/):
 build graphs over plain Clojure values and run JGraphT's fast, mature algorithm
