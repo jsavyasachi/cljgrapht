@@ -6,10 +6,10 @@
   :dependencies [[org.clojure/clojure "1.12.5"]
                  [org.jgrapht/jgrapht-core "1.5.3"]]
   :global-vars {*warn-on-reflection* true}
-  :deploy-repositories [["releases" {:url "https://repo.clojars.org"
-                                     :username :env/clojars_username
-                                     :password :env/clojars_password
-                                     :sign-releases false}]]
+  :deploy-repositories [["clojars" {:url "https://repo.clojars.org"
+                                    :username :env/clojars_username
+                                    :password :env/clojars_password
+                                    :sign-releases false}]]
   :profiles {:dev {:dependencies [[org.clojure/test.check "1.1.3"]]}
              :clojure-1-10 {:dependencies [[org.clojure/clojure "1.10.3"]]}
              :clojure-1-11 {:dependencies [[org.clojure/clojure "1.11.4"]]}
