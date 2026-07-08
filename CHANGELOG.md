@@ -5,6 +5,8 @@ the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
 ## Unreleased
 
+## 0.3.0 - 2026-07-08
+
 ### Added
 - Shortest-path algorithms in `cljgrapht.algo`: `astar`, `bellman-ford`,
   `bellman-ford-distances`, `johnson-all-pairs`, and `k-shortest-paths`.
