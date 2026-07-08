@@ -5,6 +5,12 @@ the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
 ## Unreleased
 
+### Added
+- `cljgrapht.gen` graph generators for complete, ring, star, grid,
+  Erdos-Renyi, Barabasi-Albert, and Watts-Strogatz graphs.
+- `cljgrapht.io` DOT and GraphML export helpers, DOT import, and file writers.
+- cljdoc migration guide for moving from Loom to cljgrapht.
+
 ## 0.3.0 - 2026-07-08
 
 ### Added

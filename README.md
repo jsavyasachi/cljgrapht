@@ -99,6 +99,18 @@ net.clojars.savya/cljgrapht {:mvn/version "0.3.0"}
   `global-clustering-coefficient`, `coreness`, `density`,
   `isolated-vertices`, `isomorphic?`
 
+### What's in `cljgrapht.gen`
+
+- Graph generators: `complete-graph`, `ring-graph`, `star-graph`,
+  `grid-graph`
+- Seedable random generators: `gnp-random-graph`, `barabasi-albert-graph`,
+  `watts-strogatz-graph`
+
+### What's in `cljgrapht.io`
+
+- DOT: `dot`, `write-dot!`, `read-dot`
+- GraphML: `graphml`, `write-graphml!`
+
 ## Loom interop
 
 `cljgrapht.loom` extends [loom](https://github.com/aysylu/loom)'s `Graph`,

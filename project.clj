@@ -4,7 +4,8 @@
   :license {:name "Eclipse Public License 2.0"
             :url "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [[org.clojure/clojure "1.12.5"]
-                 [org.jgrapht/jgrapht-core "1.5.3"]]
+                 [org.jgrapht/jgrapht-core "1.5.3"]
+                 [org.jgrapht/jgrapht-io "1.5.3"]]
   :global-vars {*warn-on-reflection* true}
   :deploy-repositories [["clojars" {:url "https://repo.clojars.org"
                                     :username :env/clojars_username
