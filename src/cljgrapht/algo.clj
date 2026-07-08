@@ -7,18 +7,104 @@
   `strongly-connected-components`, `topological-sort`, and `cycle?` are for
   directed graphs."
   (:require [cljgrapht.core :as core])
-  (:import (org.jgrapht Graph GraphPath)
+  (:import (java.util Collection HashSet)
+           (java.util.function Supplier)
+           (org.jgrapht Graph GraphPath)
+           (org.jgrapht.graph DefaultEdge DefaultWeightedEdge)
+           (org.jgrapht.graph.builder GraphTypeBuilder)
            (org.jgrapht.alg.shortestpath DijkstraShortestPath
                                          FloydWarshallShortestPaths)
            (org.jgrapht.alg.connectivity ConnectivityInspector
                                          KosarajuStrongConnectivityInspector)
            (org.jgrapht.alg.cycle CycleDetector)
            (org.jgrapht.alg.spanning PrimMinimumSpanningTree)
-           (org.jgrapht.alg.interfaces SpanningTreeAlgorithm$SpanningTree)
+           (org.jgrapht.alg.interfaces MatchingAlgorithm$Matching
+                                       MaximumFlowAlgorithm$MaximumFlow
+                                       SpanningTreeAlgorithm$SpanningTree
+                                       VertexColoringAlgorithm
+                                       VertexColoringAlgorithm$Coloring)
+           (org.jgrapht.alg.matching DenseEdmondsMaximumCardinalityMatching
+                                     HopcroftKarpMaximumCardinalityBipartiteMatching)
+           (org.jgrapht.alg.matching.blossom.v5 KolmogorovWeightedMatching
+                                                ObjectiveSense)
+           (org.jgrapht.alg.flow PushRelabelMFImpl)
+           (org.jgrapht.alg.color GreedyColoring
+                                  LargestDegreeFirstColoring
+                                  SaturationDegreeColoring
+                                  SmallestDegreeLastColoring)
            (org.jgrapht.alg.scoring BetweennessCentrality
                                     ClosenessCentrality
                                     PageRank)
            (org.jgrapht.traverse TopologicalOrderIterator)))
+
+(defn- directed? [^Graph g]
+  (.. g getType isDirected))
+
+(defn- undirected? [^Graph g]
+  (.. g getType isUndirected))
+
+(defn- not-directed [^Graph g operation]
+  (ex-info "JGraphT graph is not directed"
+           {:cljgrapht/error :not-directed
+            :cljgrapht/operation operation
+            :cljgrapht/graph-type (.getType g)}))
+
+(defn- not-undirected [^Graph g operation]
+  (ex-info "JGraphT graph is not undirected"
+           {:cljgrapht/error :not-undirected
+            :cljgrapht/operation operation
+            :cljgrapht/graph-type (.getType g)}))
+
+(defn- unknown-algorithm [algorithm]
+  (ex-info "Unknown graph coloring algorithm"
+           {:cljgrapht/error :unknown-algorithm
+            :cljgrapht/algorithm algorithm}))
+
+(defn- ensure-directed [^Graph g operation]
+  (when-not (directed? g)
+    (throw (not-directed g operation))))
+
+(defn- ensure-undirected [^Graph g operation]
+  (when-not (undirected? g)
+    (throw (not-undirected g operation))))
+
+(defn- edge-pair [^Graph g e]
+  [(.getEdgeSource g e) (.getEdgeTarget g e)])
+
+(defn- matching-result [^Graph g ^MatchingAlgorithm$Matching matching]
+  {:edges (set (map (fn [e] (edge-pair g e)) (.getEdges matching)))
+   :size (count (.getEdges matching))})
+
+(defn- weighted-matching-result [^Graph g ^MatchingAlgorithm$Matching matching]
+  {:edges (set (map (fn [e] (edge-pair g e)) (.getEdges matching)))
+   :weight (.getWeight matching)})
+
+(defn- coloring-result [^VertexColoringAlgorithm algorithm]
+  (let [^VertexColoringAlgorithm$Coloring coloring (.getColoring algorithm)]
+    {:colors (into {} (.getColors coloring))
+     :chromatic (.getNumberColors coloring)}))
+
+(defn- graph-with-suppliers ^Graph [^Graph g]
+  (let [weighted? (.. g getType isWeighted)
+        ^Supplier vertex-supplier (reify Supplier
+                                    (get [_] (Object.)))
+        ^GraphTypeBuilder b (GraphTypeBuilder/undirected)
+        ^Graph copy (-> b
+                        (.allowingMultipleEdges (.. g getType isAllowingMultipleEdges))
+                        (.allowingSelfLoops (.. g getType isAllowingSelfLoops))
+                        (.weighted weighted?)
+                        (.vertexSupplier vertex-supplier)
+                        (.edgeClass (if weighted? DefaultWeightedEdge DefaultEdge))
+                        (.buildGraph))]
+    (doseq [v (.vertexSet g)]
+      (.addVertex copy v))
+    (doseq [e (.edgeSet g)]
+      (let [u (.getEdgeSource g e)
+            v (.getEdgeTarget g e)
+            copied-edge (.addEdge copy u v)]
+        (when weighted?
+          (.setEdgeWeight copy copied-edge (.getEdgeWeight g e)))))
+    copy))
 
 (defn shortest-path
   "Cheapest path from `src` to `dst` as `{:path [v ...] :weight w}`, or nil if
@@ -87,6 +173,83 @@
     {:edges (set (map (fn [e] [(.getEdgeSource g e) (.getEdgeTarget g e)])
                       (.getEdges st)))
      :weight (.getWeight st)}))
+
+(defn maximum-matching
+  "Maximum cardinality matching of undirected graph `g` as
+  `{:edges #{[u v] ...} :size n}` (Edmonds)."
+  [^Graph g]
+  (ensure-undirected g :maximum-matching)
+  (let [^MatchingAlgorithm$Matching matching (.getMatching
+                                              (DenseEdmondsMaximumCardinalityMatching. g))]
+    (matching-result g matching)))
+
+(defn maximum-weight-matching
+  "Maximum weight matching of undirected graph `g` as
+  `{:edges #{[u v] ...} :weight w}` (Kolmogorov blossom)."
+  [^Graph g]
+  (ensure-undirected g :maximum-weight-matching)
+  (let [matching-graph (graph-with-suppliers g)
+        ^MatchingAlgorithm$Matching matching (.getMatching
+                                              (KolmogorovWeightedMatching.
+                                               matching-graph ObjectiveSense/MAXIMIZE))]
+    (weighted-matching-result matching-graph matching)))
+
+(defn bipartite-matching
+  "Maximum cardinality matching of bipartite graph `g` with vertex partitions
+  `part1` and `part2`, as `{:edges #{[u v] ...} :size n}` (Hopcroft-Karp)."
+  [^Graph g part1 part2]
+  (let [^MatchingAlgorithm$Matching matching (.getMatching
+                                              (HopcroftKarpMaximumCardinalityBipartiteMatching.
+                                               g
+                                               (HashSet. ^Collection part1)
+                                               (HashSet. ^Collection part2)))]
+    (matching-result g matching)))
+
+(defn max-flow
+  "Maximum `source`->`sink` flow in directed graph `g` as
+  `{:value flow-value :flow {[u v] flow-on-edge, ...}}` (Push-Relabel). Edge
+  weights are capacities; zero-flow edges are omitted from `:flow`."
+  [^Graph g source sink]
+  (ensure-directed g :max-flow)
+  (let [^MaximumFlowAlgorithm$MaximumFlow flow (.getMaximumFlow
+                                                (PushRelabelMFImpl. g) source sink)]
+    {:value (double (.getValue flow))
+     :flow (into {}
+                 (for [[e f] (.getFlowMap flow)
+                       :let [f (double f)]
+                       :when (not (zero? f))]
+                   [(edge-pair g e) f]))}))
+
+(defn min-cut
+  "Minimum `source`->`sink` cut in directed graph `g` as
+  `{:weight w :source-partition #{...} :sink-partition #{...}}` (Push-Relabel)."
+  [^Graph g source sink]
+  (ensure-directed g :min-cut)
+  (let [impl (PushRelabelMFImpl. g)]
+    {:weight (.calculateMinCut impl source sink)
+     :source-partition (set (.getSourcePartition impl))
+     :sink-partition (set (.getSinkPartition impl))}))
+
+(defn coloring
+  "Vertex coloring of `g` as `{:colors {vertex color-int, ...} :chromatic n}`.
+  Options may include `:algorithm`, one of `:saturation` (default), `:greedy`,
+  `:largest-degree-first`, or `:smallest-degree-last`."
+  ([^Graph g]
+   (coloring g {}))
+  ([^Graph g {:keys [algorithm] :or {algorithm :saturation}}]
+   (coloring-result
+    (case algorithm
+      :saturation (SaturationDegreeColoring. g)
+      :greedy (GreedyColoring. g)
+      :largest-degree-first (LargestDegreeFirstColoring. g)
+      :smallest-degree-last (SmallestDegreeLastColoring. g)
+      (throw (unknown-algorithm algorithm))))))
+
+(defn greedy-coloring
+  "Greedy vertex coloring of `g` as
+  `{:colors {vertex color-int, ...} :chromatic n}`."
+  [^Graph g]
+  (coloring g {:algorithm :greedy}))
 
 (defn betweenness-centrality
   "Map of vertex -> betweenness centrality score."

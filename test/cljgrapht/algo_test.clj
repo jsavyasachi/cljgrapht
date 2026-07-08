@@ -44,6 +44,78 @@
     (is (= 3.0 (:weight mst)))
     (is (= #{#{:a :b} #{:b :c}} (set (map set (:edges mst)))))))
 
+(deftest matching
+  (testing "maximum cardinality matching on an undirected graph"
+    (let [gr (g/graph [[:a :b] [:b :c] [:c :d]])
+          matching (a/maximum-matching gr)]
+      (is (= 2 (:size matching)))
+      (is (= #{#{:a :b} #{:c :d}} (set (map set (:edges matching)))))))
+  (testing "maximum weight matching on an undirected graph"
+    (let [gr (g/weighted-graph [[:a :b 10.0] [:a :c 1.0] [:b :c 1.0]])
+          matching (a/maximum-weight-matching gr)]
+      (is (= 10.0 (:weight matching)))
+      (is (= #{#{:a :b}} (set (map set (:edges matching)))))))
+  (testing "bipartite matching"
+    (let [gr (g/graph [[:a :x] [:a :y] [:b :y]])
+          matching (a/bipartite-matching gr [:a :b] [:x :y])]
+      (is (= 2 (:size matching)))
+      (is (= #{#{:a :x} #{:b :y}} (set (map set (:edges matching)))))))
+  (testing "maximum matching rejects directed graphs"
+    (try
+      (a/maximum-matching (g/digraph [[:a :b]]))
+      (is false "expected ex-info")
+      (catch clojure.lang.ExceptionInfo e
+        (is (= :not-undirected (:cljgrapht/error (ex-data e))))))))
+
+(deftest flow-and-cuts
+  (let [gr (g/weighted-digraph [[:s :a 3.0] [:s :b 2.0] [:a :t 2.0]
+                                [:b :t 3.0] [:a :b 1.0]])]
+    (testing "max flow returns value and nonzero edge flows"
+      (let [flow (a/max-flow gr :s :t)]
+        (is (= 5.0 (:value flow)))
+        (is (= #{[:s :a] [:s :b] [:a :t] [:b :t] [:a :b]}
+               (set (keys (:flow flow)))))
+        (is (every? (fn [[[u v] f]]
+                      (<= f (g/weight gr u v)))
+                    (:flow flow)))))
+    (testing "min cut returns weight and source/sink partitions"
+      (let [cut (a/min-cut gr :s :t)]
+        (is (= 5.0 (:weight cut)))
+        (is (contains? (:source-partition cut) :s))
+        (is (contains? (:sink-partition cut) :t)))))
+  (testing "max flow rejects undirected graphs"
+    (try
+      (a/max-flow (g/graph [[:s :t]]) :s :t)
+      (is false "expected ex-info")
+      (catch clojure.lang.ExceptionInfo e
+        (is (= :not-directed (:cljgrapht/error (ex-data e))))))))
+
+(deftest coloring
+  (testing "triangle needs three colors"
+    (let [gr (g/graph [[:a :b] [:b :c] [:a :c]])
+          coloring (a/coloring gr)]
+      (is (= 3 (:chromatic coloring)))
+      (is (= #{:a :b :c} (set (keys (:colors coloring)))))
+      (is (every? (fn [[u v]]
+                    (not= (get-in coloring [:colors u])
+                          (get-in coloring [:colors v])))
+                  (g/edges gr)))))
+  (testing "path needs two colors"
+    (let [gr (g/graph [[:a :b] [:b :c] [:c :d]])
+          coloring (a/coloring gr)]
+      (is (= 2 (:chromatic coloring)))
+      (is (= 2 (:chromatic (a/greedy-coloring gr))))
+      (is (every? (fn [[u v]]
+                    (not= (get-in coloring [:colors u])
+                          (get-in coloring [:colors v])))
+                  (g/edges gr)))))
+  (testing "unknown coloring algorithm is reported"
+    (try
+      (a/coloring (g/graph [[:a :b]]) {:algorithm :missing})
+      (is false "expected ex-info")
+      (catch clojure.lang.ExceptionInfo e
+        (is (= :unknown-algorithm (:cljgrapht/error (ex-data e))))))))
+
 (deftest centrality
   (let [star (g/graph [[:hub :a] [:hub :b] [:hub :c]])]
     (testing "every vertex scored"
