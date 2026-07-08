@@ -5,6 +5,8 @@ the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
 ## Unreleased
 
+## 0.4.0 - 2026-07-08
+
 ### Added
 - `cljgrapht.gen` graph generators for complete, ring, star, grid,
   Erdos-Renyi, Barabasi-Albert, and Watts-Strogatz graphs.
