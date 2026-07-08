@@ -1,4 +1,4 @@
-(defproject net.clojars.savya/cljgrapht "0.2.0"
+(defproject net.clojars.savya/cljgrapht "0.3.0"
   :description "Idiomatic Clojure graph library backed by JGraphT: fast algorithms over Clojure-value vertices"
   :url "https://github.com/jsavyasachi/cljgrapht"
   :license {:name "Eclipse Public License 2.0"

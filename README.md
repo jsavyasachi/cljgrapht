@@ -40,13 +40,13 @@ Requires **JDK 11+** (JGraphT 1.5.x).
 Leiningen (`project.clj`):
 
 ```clojure
-[net.clojars.savya/cljgrapht "0.2.0"]
+[net.clojars.savya/cljgrapht "0.3.0"]
 ```
 
 tools.deps (`deps.edn`):
 
 ```clojure
-net.clojars.savya/cljgrapht {:mvn/version "0.2.0"}
+net.clojars.savya/cljgrapht {:mvn/version "0.3.0"}
 ```
 
 ## Usage
