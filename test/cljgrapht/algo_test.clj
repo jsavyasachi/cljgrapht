@@ -3,6 +3,24 @@
             [cljgrapht.core :as g]
             [cljgrapht.algo :as a]))
 
+(deftest traversal-seqs
+  (let [gr (g/graph [[:a :b] [:a :c] [:b :d] [:c :e]])]
+    (testing "breadth-first traversal from a start vertex"
+      (is (= [:a :b :c :d :e] (a/bfs gr :a))))
+    (testing "depth-first traversal from a start vertex"
+      ;; JGraphT's DFS iterator is stack-driven (LIFO), so later neighbors win.
+      (is (= [:a :c :e :b :d] (a/dfs gr :a)))))
+  (testing "directed traversal follows edge direction"
+    (let [gr (g/digraph [[:a :b] [:a :c] [:b :d] [:c :e]])]
+      (is (= [:a :b :c :d :e] (a/bfs gr :a)))
+      (is (= [:a :c :e :b :d] (a/dfs gr :a)))))
+  (testing "unknown start vertex is reported"
+    (try
+      (a/bfs (g/graph [[:a :b]]) :missing)
+      (is false "expected ex-info")
+      (catch clojure.lang.ExceptionInfo e
+        (is (= :unknown-vertex (:cljgrapht/error (ex-data e))))))))
+
 (deftest shortest-path-weighted
   (let [gr (g/weighted-digraph [[:a :b 1.0] [:a :c 4.0] [:b :c 1.0] [:c :d 1.0]])]
     (testing "picks the cheaper multi-hop route over the direct expensive edge"
@@ -16,6 +34,118 @@
     (testing "hop count via default unit weights"
       (is (= 1.0 (a/shortest-path-length gr :a :c)))
       (is (= [:a :c] (:path (a/shortest-path gr :a :c)))))))
+
+(deftest astar-shortest-path
+  (let [gr (g/weighted-digraph [[:a :b 1.0] [:a :c 5.0] [:b :c 1.0] [:c :d 1.0]])
+        zero-heuristic (fn [_ _] 0.0)]
+    (testing "uses the supplied heuristic and returns the cheapest path"
+      (is (= {:path [:a :b :c :d] :weight 3.0}
+             (a/astar gr :a :d zero-heuristic))))
+    (testing "unreachable returns nil"
+      (is (nil? (a/astar gr :d :a zero-heuristic))))))
+
+(deftest bellman-ford-shortest-paths
+  (let [gr (g/weighted-digraph [[:a :b 1.0] [:a :c 4.0] [:b :c -2.0] [:c :d 2.0]])]
+    (testing "supports negative edge weights without negative cycles"
+      (is (= {:path [:a :b :c :d] :weight 1.0}
+             (a/bellman-ford gr :a :d)))
+      (is (= {:a 0.0 :b 1.0 :c -1.0 :d 1.0}
+             (a/bellman-ford-distances gr :a))))
+    (testing "unreachable returns nil"
+      (is (nil? (a/bellman-ford gr :d :a))))))
+
+(deftest johnson-all-pairs-shortest-paths
+  (let [gr (g/weighted-digraph [[:a :b 1.0] [:a :c 4.0] [:b :c -2.0] [:c :d 2.0]])]
+    (is (= {:a {:b 1.0 :c -1.0 :d 1.0}
+            :b {:c -2.0 :d 0.0}
+            :c {:d 2.0}
+            :d {}}
+           (a/johnson-all-pairs gr)))))
+
+(deftest yen-k-shortest-paths
+  (let [gr (g/weighted-digraph [[:a :b 1.0] [:b :d 1.0] [:a :c 1.0]
+                                [:c :d 2.0] [:b :c 1.0]])]
+    (is (= [{:path [:a :b :d] :weight 2.0}
+            {:path [:a :c :d] :weight 3.0}
+            {:path [:a :b :c :d] :weight 4.0}]
+           (a/k-shortest-paths gr :a :d 3)))))
+
+(deftest all-simple-paths-directed
+  (let [gr (g/digraph [[:a :b] [:a :c] [:b :d] [:c :d] [:b :c]])]
+    (is (= #{[:a :b :d] [:a :b :c :d] [:a :c :d]}
+           (set (map :path (a/all-simple-paths gr :a :d)))))
+    (testing "rejects undirected graphs"
+      (try
+        (a/all-simple-paths (g/graph [[:a :b]]) :a :b)
+        (is false "expected ex-info")
+        (catch clojure.lang.ExceptionInfo e
+          (is (= :not-directed (:cljgrapht/error (ex-data e)))))))))
+
+(deftest clique-and-scoring-algorithms
+  (let [gr (g/graph [[:a :b] [:a :c] [:b :c] [:c :d]])]
+    (testing "maximal cliques"
+      (is (= #{#{:a :b :c} #{:c :d}}
+             (set (a/maximal-cliques gr)))))
+    (testing "maximal cliques reject directed graphs"
+      (try
+        (a/maximal-cliques (g/digraph [[:a :b]]))
+        (is false "expected ex-info")
+        (catch clojure.lang.ExceptionInfo e
+          (is (= :not-undirected (:cljgrapht/error (ex-data e)))))))
+    (testing "clustering coefficients"
+      (is (= {:a 1.0 :b 1.0 :c (/ 1.0 3.0) :d 0.0}
+             (a/clustering-coefficient gr)))
+      (is (= 0.6 (a/global-clustering-coefficient gr))))
+    (testing "coreness"
+      (is (= {:a 2 :b 2 :c 2 :d 1}
+             (a/coreness gr))))))
+
+(deftest graph-predicates-and-shape
+  (testing "bipartite checks and partitions"
+    (let [gr (g/graph [[:a :x] [:a :y] [:b :y]])]
+      (is (true? (a/bipartite? gr)))
+      (is (= #{#{:a :b} #{:x :y}}
+             (set (a/bipartite-sets gr)))))
+    (let [triangle (g/graph [[:a :b] [:b :c] [:c :a]])]
+      (is (false? (a/bipartite? triangle)))
+      (is (nil? (a/bipartite-sets triangle)))))
+  (testing "directed acyclic graph predicate"
+    (is (true? (a/dag? (g/digraph [[:a :b] [:b :c]]))))
+    (is (false? (a/dag? (g/digraph [[:a :b] [:b :a]])))))
+  (testing "connectivity predicates"
+    (is (true? (a/connected? (g/graph [[:a :b] [:b :c]]))))
+    (is (false? (a/connected? (g/graph [[:a :b] [:c :d]]))))
+    (is (true? (a/strongly-connected? (g/digraph [[:a :b] [:b :a]]))))
+    (is (false? (a/strongly-connected? (g/digraph [[:a :b]])))))
+  (testing "density and isolated vertices"
+    (let [gr (doto (g/graph [[:a :b] [:b :c]])
+               (g/add-vertex :d))]
+      (is (= (/ 1.0 3.0) (a/density gr)))
+      (is (= #{:d} (a/isolated-vertices gr))))))
+
+(deftest isomorphism
+  (testing "VF2 graph isomorphism ignores vertex values by default"
+    (is (true? (a/isomorphic? (g/graph [[:a :b] [:b :c]])
+                              (g/graph [[1 2] [2 3]]))))
+    (is (false? (a/isomorphic? (g/graph [[:a :b] [:b :c]])
+                               (g/graph [[1 2] [2 3] [3 1]])))))
+  (testing "rejects mixed directedness"
+    (try
+      (a/isomorphic? (g/graph [[:a :b]]) (g/digraph [[:a :b]]))
+      (is false "expected ex-info")
+      (catch clojure.lang.ExceptionInfo e
+        (is (= :mixed-direction (:cljgrapht/error (ex-data e))))))))
+
+(deftest simple-cycles-directed
+  (let [gr (g/digraph [[:a :b] [:b :c] [:c :a] [:b :d] [:d :b]])]
+    (is (= #{#{:a :b :c} #{:b :d}}
+           (set (map set (a/simple-cycles gr)))))
+    (testing "rejects undirected graphs"
+      (try
+        (a/simple-cycles (g/graph [[:a :b] [:b :c] [:c :a]]))
+        (is false "expected ex-info")
+        (catch clojure.lang.ExceptionInfo e
+          (is (= :not-directed (:cljgrapht/error (ex-data e)))))))))
 
 (deftest connected-components-undirected
   (let [gr (g/graph [[:a :b] [:c :d]])]

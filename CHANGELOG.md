@@ -3,6 +3,19 @@
 All notable changes to this project are documented here. This change log follows
 the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## Unreleased
+
+### Added
+- Shortest-path algorithms in `cljgrapht.algo`: `astar`, `bellman-ford`,
+  `bellman-ford-distances`, `johnson-all-pairs`, and `k-shortest-paths`.
+- Directed path and cycle enumeration: `all-simple-paths` and `simple-cycles`.
+- Graph predicates and measures: `dag?`, `connected?`,
+  `strongly-connected?`, `density`, `isolated-vertices`, and `isomorphic?`.
+- Undirected clique and scoring algorithms: `maximal-cliques`,
+  `clustering-coefficient`, `global-clustering-coefficient`, and `coreness`.
+- Bipartite helpers: `bipartite?` and `bipartite-sets`.
+- Traversal helpers: `bfs` and `dfs`.
+
 ## [0.2.0] - 2026-07-07
 
 ### Added

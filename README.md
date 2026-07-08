@@ -79,17 +79,25 @@ net.clojars.savya/cljgrapht {:mvn/version "0.2.0"}
 
 ### What's in `cljgrapht.algo`
 
-- Shortest paths: `shortest-path`, `shortest-path-length`,
-  `all-pairs-shortest-path-length`
-- Connectivity: `connected-components`, `strongly-connected-components`
-- Ordering & cycles: `topological-sort`, `cycle?`, `vertices-on-cycles`
+- Shortest paths: `shortest-path`, `shortest-path-length`, `astar`,
+  `bellman-ford`, `bellman-ford-distances`,
+  `all-pairs-shortest-path-length`, `johnson-all-pairs`,
+  `k-shortest-paths`, `all-simple-paths`
+- Connectivity: `connected-components`, `strongly-connected-components`,
+  `connected?`, `strongly-connected?`
+- Ordering & cycles: `topological-sort`, `dag?`, `cycle?`,
+  `vertices-on-cycles`, `simple-cycles`
 - Spanning: `minimum-spanning-tree`
 - Matching: `maximum-matching` (Edmonds), `maximum-weight-matching`
-  (Kolmogorov blossom V), `bipartite-matching` (Hopcroft-Karp)
+  (Kolmogorov blossom V), `bipartite-matching` (Hopcroft-Karp),
+  `bipartite?`, `bipartite-sets`
 - Flow: `max-flow`, `min-cut` (push-relabel; edge weights are capacities)
 - Coloring: `coloring` (DSatur default; `:greedy`, `:largest-degree-first`,
   `:smallest-degree-last` via `:algorithm`), `greedy-coloring`
 - Centrality: `betweenness-centrality`, `closeness-centrality`, `pagerank`
+- Graph shape and scoring: `maximal-cliques`, `clustering-coefficient`,
+  `global-clustering-coefficient`, `coreness`, `density`,
+  `isolated-vertices`, `isomorphic?`
 
 ## Loom interop
 

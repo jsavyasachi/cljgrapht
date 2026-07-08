@@ -12,11 +12,22 @@
            (org.jgrapht Graph GraphPath)
            (org.jgrapht.graph DefaultEdge DefaultWeightedEdge)
            (org.jgrapht.graph.builder GraphTypeBuilder)
-           (org.jgrapht.alg.shortestpath DijkstraShortestPath
-                                         FloydWarshallShortestPaths)
+           (org.jgrapht.alg.shortestpath AStarShortestPath
+                                         AllDirectedPaths
+                                         BellmanFordShortestPath
+                                         DijkstraShortestPath
+                                         FloydWarshallShortestPaths
+                                         JohnsonShortestPaths
+                                         YenKShortestPath)
+           (org.jgrapht.alg.interfaces AStarAdmissibleHeuristic
+                                       PartitioningAlgorithm$Partitioning
+                                       ShortestPathAlgorithm$SingleSourcePaths)
            (org.jgrapht.alg.connectivity ConnectivityInspector
                                          KosarajuStrongConnectivityInspector)
-           (org.jgrapht.alg.cycle CycleDetector)
+           (org.jgrapht.alg.cycle CycleDetector
+                                  DirectedSimpleCycles
+                                  JohnsonSimpleCycles)
+           (org.jgrapht.alg.clique BronKerboschCliqueFinder)
            (org.jgrapht.alg.spanning PrimMinimumSpanningTree)
            (org.jgrapht.alg.interfaces MatchingAlgorithm$Matching
                                        MaximumFlowAlgorithm$MaximumFlow
@@ -34,8 +45,14 @@
                                   SmallestDegreeLastColoring)
            (org.jgrapht.alg.scoring BetweennessCentrality
                                     ClosenessCentrality
+                                    ClusteringCoefficient
+                                    Coreness
                                     PageRank)
-           (org.jgrapht.traverse TopologicalOrderIterator)))
+           (org.jgrapht.alg.partition BipartitePartitioning)
+           (org.jgrapht.alg.isomorphism VF2GraphIsomorphismInspector)
+           (org.jgrapht.traverse BreadthFirstIterator
+                                 DepthFirstIterator
+                                 TopologicalOrderIterator)))
 
 (defn- directed? [^Graph g]
   (.. g getType isDirected))
@@ -60,6 +77,17 @@
            {:cljgrapht/error :unknown-algorithm
             :cljgrapht/algorithm algorithm}))
 
+(defn- unknown-vertex [operation vertex]
+  (ex-info "Unknown vertex"
+           {:cljgrapht/error :unknown-vertex
+            :cljgrapht/operation operation
+            :cljgrapht/vertex vertex}))
+
+(defn- mixed-direction [operation]
+  (ex-info "JGraphT graphs have mixed directedness"
+           {:cljgrapht/error :mixed-direction
+            :cljgrapht/operation operation}))
+
 (defn- ensure-directed [^Graph g operation]
   (when-not (directed? g)
     (throw (not-directed g operation))))
@@ -70,6 +98,22 @@
 
 (defn- edge-pair [^Graph g e]
   [(.getEdgeSource g e) (.getEdgeTarget g e)])
+
+(defn- ensure-vertex [^Graph g operation vertex]
+  (when-not (.containsVertex g vertex)
+    (throw (unknown-vertex operation vertex))))
+
+(defn- path-result [^GraphPath p]
+  (when p
+    {:path (vec (.getVertexList p))
+     :weight (.getWeight p)}))
+
+(defn- distances-result [^Graph g ^ShortestPathAlgorithm$SingleSourcePaths paths]
+  (into {}
+        (for [v (.vertexSet g)
+              :let [w (.getWeight paths v)]
+              :when (not (Double/isInfinite w))]
+          [v w])))
 
 (defn- matching-result [^Graph g ^MatchingAlgorithm$Matching matching]
   {:edges (set (map (fn [e] (edge-pair g e)) (.getEdges matching)))
@@ -88,7 +132,9 @@
   (let [weighted? (.. g getType isWeighted)
         ^Supplier vertex-supplier (reify Supplier
                                     (get [_] (Object.)))
-        ^GraphTypeBuilder b (GraphTypeBuilder/undirected)
+        ^GraphTypeBuilder b (if (directed? g)
+                              (GraphTypeBuilder/directed)
+                              (GraphTypeBuilder/undirected))
         ^Graph copy (-> b
                         (.allowingMultipleEdges (.. g getType isAllowingMultipleEdges))
                         (.allowingSelfLoops (.. g getType isAllowingSelfLoops))
@@ -111,10 +157,41 @@
   unreachable. Uses Dijkstra; unweighted graphs use unit edge weights, so
   `:weight` is the hop count."
   [^Graph g src dst]
-  (let [^GraphPath p (.getPath (DijkstraShortestPath. g) src dst)]
-    (when p
-      {:path (vec (.getVertexList p))
-       :weight (.getWeight p)})))
+  (path-result (.getPath (DijkstraShortestPath. g) src dst)))
+
+(defn astar
+  "Cheapest path from `src` to `dst` as `{:path [v ...] :weight w}`, or nil if
+  unreachable, using A* with `heuristic`, a function of `[vertex target]`."
+  [^Graph g src dst heuristic]
+  (let [h (reify AStarAdmissibleHeuristic
+            (getCostEstimate [_ v target]
+              (double (heuristic v target))))]
+    (path-result (.getPath (AStarShortestPath. g h) src dst))))
+
+(defn bellman-ford
+  "Cheapest path from `src` to `dst` as `{:path [v ...] :weight w}`, or nil if
+  unreachable. Supports negative edge weights but not negative cycles."
+  [^Graph g src dst]
+  (path-result (.getPath (BellmanFordShortestPath. g) src dst)))
+
+(defn bellman-ford-distances
+  "Map of every reachable vertex from `src` to its Bellman-Ford distance.
+  Includes `src` with distance 0.0."
+  [^Graph g src]
+  (distances-result g (.getPaths (BellmanFordShortestPath. g) src)))
+
+(defn bfs
+  "Vector of vertices in breadth-first order from `start`."
+  [^Graph g start]
+  (ensure-vertex g :bfs start)
+  (vec (iterator-seq (BreadthFirstIterator. g start))))
+
+(defn dfs
+  "Vector of vertices in depth-first pre-order from `start`. Neighbor
+  visitation follows JGraphT's stack order: most-recently-added first."
+  [^Graph g start]
+  (ensure-vertex g :dfs start)
+  (vec (iterator-seq (DepthFirstIterator. g start))))
 
 (defn shortest-path-length
   "Weight of the cheapest `src`->`dst` path, or nil if unreachable."
@@ -136,6 +213,35 @@
                            :when (not (Double/isInfinite w))]
                        [v w]))]))))
 
+(defn johnson-all-pairs
+  "Nested map {u {v weight}} of cheapest path weights between every reachable
+  ordered pair of distinct vertices (Johnson). Supports negative edge weights
+  but not negative cycles."
+  [^Graph g]
+  (let [johnson (JohnsonShortestPaths. (graph-with-suppliers g))
+        vs (core/vertices g)]
+    (into {}
+          (for [u vs]
+            [u (into {}
+                     (for [v vs
+                           :when (not= u v)
+                           :let [w (.getPathWeight johnson u v)]
+                           :when (not (Double/isInfinite w))]
+                       [v w]))]))))
+
+(defn k-shortest-paths
+  "`k` shortest simple paths from `src` to `dst`, as vectors of
+  `{:path [v ...] :weight w}` maps (Yen)."
+  [^Graph g src dst k]
+  (mapv path-result (.getPaths (YenKShortestPath. g) src dst (int k))))
+
+(defn all-simple-paths
+  "All simple directed paths from `src` to `dst`, as vectors of
+  `{:path [v ...] :weight w}` maps."
+  [^Graph g src dst]
+  (ensure-directed g :all-simple-paths)
+  (mapv path-result (.getAllPaths (AllDirectedPaths. g) src dst true nil)))
+
 (defn connected-components
   "Seq of vertex sets, one per connected component (undirected; for a directed
   graph these are the weakly-connected components)."
@@ -147,6 +253,17 @@
   [^Graph g]
   (map set (.stronglyConnectedSets (KosarajuStrongConnectivityInspector. g))))
 
+(defn connected?
+  "True if `g` is connected. Directed graphs are checked as weakly connected."
+  [^Graph g]
+  (.isConnected (ConnectivityInspector. g)))
+
+(defn strongly-connected?
+  "True if directed graph `g` is strongly connected."
+  [^Graph g]
+  (ensure-directed g :strongly-connected?)
+  (.isStronglyConnected (KosarajuStrongConnectivityInspector. g)))
+
 (defn cycle?
   "True if the directed graph `g` contains a cycle."
   [^Graph g]
@@ -156,6 +273,19 @@
   "Set of vertices that participate in at least one cycle of directed graph `g`."
   [^Graph g]
   (set (.findCycles (CycleDetector. g))))
+
+(defn dag?
+  "True if directed graph `g` is acyclic."
+  [^Graph g]
+  (ensure-directed g :dag?)
+  (not (cycle? g)))
+
+(defn simple-cycles
+  "Vector of simple directed cycles, each as a vector of vertices
+  (JohnsonSimpleCycles)."
+  [^Graph g]
+  (ensure-directed g :simple-cycles)
+  (mapv vec (.findSimpleCycles ^DirectedSimpleCycles (JohnsonSimpleCycles. g))))
 
 (defn topological-sort
   "Vector of vertices of directed acyclic graph `g` in topological order, or nil
@@ -205,6 +335,50 @@
                                                (HashSet. ^Collection part2)))]
     (matching-result g matching)))
 
+(defn maximal-cliques
+  "Seq of maximal cliques of undirected graph `g`, each as a vertex set
+  (Bron-Kerbosch)."
+  [^Graph g]
+  (ensure-undirected g :maximal-cliques)
+  (map set (iterator-seq (.iterator (BronKerboschCliqueFinder. g)))))
+
+(defn bipartite?
+  "True if `g` is bipartite."
+  [^Graph g]
+  (.isBipartite (BipartitePartitioning. g)))
+
+(defn bipartite-sets
+  "Two vertex partition sets when `g` is bipartite, otherwise nil."
+  [^Graph g]
+  (let [partitioning (BipartitePartitioning. g)]
+    (when (.isBipartite partitioning)
+      (let [^PartitioningAlgorithm$Partitioning p (.getPartitioning partitioning)]
+        [(set (.getPartition p 0)) (set (.getPartition p 1))]))))
+
+(defn density
+  "Graph density as m divided by the number of possible non-loop edges."
+  [^Graph g]
+  (let [n (.size (.vertexSet g))
+        m (.size (.edgeSet g))]
+    (if (< n 2)
+      0.0
+      (double (if (directed? g)
+                (/ m (* n (dec n)))
+                (/ (* 2 m) (* n (dec n))))))))
+
+(defn isolated-vertices
+  "Set of vertices with degree zero."
+  [^Graph g]
+  (set (filter #(zero? (.degreeOf g %)) (.vertexSet g))))
+
+(defn isomorphic?
+  "True if `g1` and `g2` are graph-isomorphic according to VF2. Rejects mixed
+  directed/undirected graph pairs."
+  [^Graph g1 ^Graph g2]
+  (when (not= (directed? g1) (directed? g2))
+    (throw (mixed-direction :isomorphic?)))
+  (.isomorphismExists (VF2GraphIsomorphismInspector. g1 g2)))
+
 (defn max-flow
   "Maximum `source`->`sink` flow in directed graph `g` as
   `{:value flow-value :flow {[u v] flow-on-edge, ...}}` (Push-Relabel). Edge
@@ -250,6 +424,21 @@
   `{:colors {vertex color-int, ...} :chromatic n}`."
   [^Graph g]
   (coloring g {:algorithm :greedy}))
+
+(defn clustering-coefficient
+  "Map of vertex -> local clustering coefficient."
+  [^Graph g]
+  (into {} (.getScores (ClusteringCoefficient. g))))
+
+(defn global-clustering-coefficient
+  "Global clustering coefficient of `g`."
+  [^Graph g]
+  (.getGlobalClusteringCoefficient (ClusteringCoefficient. g)))
+
+(defn coreness
+  "Map of vertex -> core number."
+  [^Graph g]
+  (into {} (.getScores (Coreness. g))))
 
 (defn betweenness-centrality
   "Map of vertex -> betweenness centrality score."
