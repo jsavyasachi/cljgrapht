@@ -3,6 +3,22 @@
 All notable changes to this project are documented here. This change log follows
 the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [0.2.0] - 2026-07-07
+
+### Added
+- Matching algorithms in `cljgrapht.algo`: `maximum-matching` (Edmonds),
+  `maximum-weight-matching` (Kolmogorov blossom V), `bipartite-matching`
+  (Hopcroft-Karp).
+- Flow algorithms: `max-flow` and `min-cut` (push-relabel; edge weights are
+  capacities).
+- Vertex coloring: `coloring` (DSatur default, `:greedy`,
+  `:largest-degree-first`, `:smallest-degree-last` selectable via
+  `:algorithm`) and `greedy-coloring`.
+- `cljgrapht.loom` - optional loom protocol interop: extends loom's `Graph`,
+  `Digraph`, `WeightedGraph`, and `EditableGraph` to raw `org.jgrapht.Graph`
+  so `loom.alg` runs directly on cljgrapht graphs. Loom stays out of
+  cljgrapht's dependencies; bring your own loom artifact.
+
 ## [0.1.4] - 2026-06-14
 
 ### Changed

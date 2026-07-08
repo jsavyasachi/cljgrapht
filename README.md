@@ -40,13 +40,13 @@ Requires **JDK 11+** (JGraphT 1.5.x).
 Leiningen (`project.clj`):
 
 ```clojure
-[net.clojars.savya/cljgrapht "0.1.4"]
+[net.clojars.savya/cljgrapht "0.2.0"]
 ```
 
 tools.deps (`deps.edn`):
 
 ```clojure
-net.clojars.savya/cljgrapht {:mvn/version "0.1.4"}
+net.clojars.savya/cljgrapht {:mvn/version "0.2.0"}
 ```
 
 ## Usage
@@ -84,7 +84,34 @@ net.clojars.savya/cljgrapht {:mvn/version "0.1.4"}
 - Connectivity: `connected-components`, `strongly-connected-components`
 - Ordering & cycles: `topological-sort`, `cycle?`, `vertices-on-cycles`
 - Spanning: `minimum-spanning-tree`
+- Matching: `maximum-matching` (Edmonds), `maximum-weight-matching`
+  (Kolmogorov blossom V), `bipartite-matching` (Hopcroft-Karp)
+- Flow: `max-flow`, `min-cut` (push-relabel; edge weights are capacities)
+- Coloring: `coloring` (DSatur default; `:greedy`, `:largest-degree-first`,
+  `:smallest-degree-last` via `:algorithm`), `greedy-coloring`
 - Centrality: `betweenness-centrality`, `closeness-centrality`, `pagerank`
+
+## Loom interop
+
+`cljgrapht.loom` extends [loom](https://github.com/aysylu/loom)'s `Graph`,
+`Digraph`, `WeightedGraph`, and `EditableGraph` protocols to raw
+`org.jgrapht.Graph`, so loom's generic algorithms (`loom.alg`) run directly on
+cljgrapht graphs:
+
+```clojure
+(require '[cljgrapht.core :as g]
+         '[cljgrapht.loom]  ;; load the protocol extensions
+         '[loom.alg :as alg])
+
+(def gr (g/weighted-digraph [[:a :b 1.0] [:a :c 10.0] [:b :c 1.0]]))
+(alg/dijkstra-path gr :a :c) ;; => (:a :b :c)
+```
+
+Loom is not a dependency of cljgrapht - add a loom artifact
+(`net.clojars.savya/loom` or `aysylu/loom`) to your own deps before requiring
+`cljgrapht.loom`. Note that loom's `EditableGraph` operations mutate the
+underlying JGraphT graph in place and return the same instance, unlike loom's
+persistent graph records.
 
 ## Performance
 
