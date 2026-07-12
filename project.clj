@@ -1,20 +1,4 @@
 (defproject net.clojars.savya/cljgrapht "0.4.0"
-  :description "Idiomatic Clojure graph library backed by JGraphT: fast algorithms over Clojure-value vertices"
-  :url "https://github.com/jsavyasachi/cljgrapht"
-  :license {:name "Eclipse Public License 2.0"
-            :url "https://www.eclipse.org/legal/epl-2.0/"}
-  :dependencies [[org.clojure/clojure "1.12.5"]
-                 [org.jgrapht/jgrapht-core "1.5.3"]
-                 [org.jgrapht/jgrapht-io "1.5.3"]]
-  :global-vars {*warn-on-reflection* true}
-  :deploy-repositories [["clojars" {:url "https://repo.clojars.org"
-                                    :username :env/clojars_username
-                                    :password :env/clojars_password
-                                    :sign-releases false}]]
-  :profiles {:provided {:dependencies [[net.clojars.savya/loom "1.3.0"]]}
-             :dev {:dependencies [[org.clojure/test.check "1.1.3"]
-                                   [net.clojars.savya/loom "1.3.0"]]}
-             :clojure-1-10 {:dependencies [[org.clojure/clojure "1.10.3"]]}
-             :clojure-1-11 {:dependencies [[org.clojure/clojure "1.11.4"]]}
-             :clojure-1-12 {:dependencies [[org.clojure/clojure "1.12.5"]]}}
-  :aliases {"all" ["with-profile" "+clojure-1-10:+clojure-1-11:+clojure-1-12"]})
+  :plugins [[lein-tools-deps "0.4.5"]]
+  :middleware [lein-tools-deps.plugin/resolve-dependencies-with-deps-edn]
+  :lein-tools-deps/config {:config-files [:install :user :project]})

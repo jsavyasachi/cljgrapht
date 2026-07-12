@@ -11,6 +11,8 @@ catalog, getting plain Clojure data back.
 ## Stack
 
 <a href="https://clojure.org"><img src="https://img.shields.io/badge/Clojure-5881D8?style=flat&logo=clojure&logoColor=fff" alt="Clojure" /></a>
+<a href="https://clojure.org/guides/deps_and_cli"><img src="https://img.shields.io/badge/deps.edn-5881D8?style=flat&logo=clojure&logoColor=fff" alt="deps.edn" /></a>
+<a href="https://clojure.github.io/tools.build/"><img src="https://img.shields.io/badge/tools.build-5881D8?style=flat&logo=clojure&logoColor=fff" alt="tools.build" /></a>
 <a href="https://jgrapht.org"><img src="https://img.shields.io/badge/JGraphT-1.5.3-4A86E8?style=flat" alt="JGraphT" /></a>
 
 ## Why
@@ -37,17 +39,20 @@ Requires **JDK 11+** (JGraphT 1.5.x).
 
 ## Installation
 
+tools.deps (`deps.edn`):
+
+```clojure
+net.clojars.savya/cljgrapht {:mvn/version "0.4.0"}
+```
+
 Leiningen (`project.clj`):
 
 ```clojure
 [net.clojars.savya/cljgrapht "0.4.0"]
 ```
 
-tools.deps (`deps.edn`):
-
-```clojure
-net.clojars.savya/cljgrapht {:mvn/version "0.4.0"}
-```
+Run tests with `clojure -M:test`. Build a jar with `clojure -T:build jar` and
+deploy to Clojars with `clojure -T:build deploy`.
 
 ## Usage
 
