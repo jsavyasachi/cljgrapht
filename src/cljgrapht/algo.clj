@@ -9,11 +9,11 @@
   (:require [cljgrapht.core :as core])
   (:import (java.util Collection HashSet)
            (java.util.concurrent Executors ThreadPoolExecutor)
-           (java.util.function Supplier)
+           (java.util.function Function Supplier)
            (org.jgrapht Graph GraphPath GraphTests)
            (org.jgrapht.graph DefaultEdge DefaultWeightedEdge SimpleDirectedGraph)
            (org.jgrapht.graph.builder GraphTypeBuilder)
-           (org.jgrapht.alg TransitiveClosure TransitiveReduction)
+           (org.jgrapht.alg StoerWagnerMinimumCut TransitiveClosure TransitiveReduction)
            (org.jgrapht.alg.shortestpath AStarShortestPath
                                          AllDirectedPaths
                                          BellmanFordShortestPath
@@ -49,6 +49,7 @@
            (org.jgrapht.alg.spanning PrimMinimumSpanningTree)
            (org.jgrapht.alg.interfaces MatchingAlgorithm$Matching
                                        MaximumFlowAlgorithm$MaximumFlow
+                                       MinimumCostFlowAlgorithm$MinimumCostFlow
                                        CapacitatedSpanningTreeAlgorithm$CapacitatedSpanningTree
                                        SpanningTreeAlgorithm$SpanningTree
                                        VertexColoringAlgorithm
@@ -62,7 +63,12 @@
                                      SparseEdmondsMaximumCardinalityMatching)
            (org.jgrapht.alg.matching.blossom.v5 KolmogorovWeightedMatching
                                                 ObjectiveSense)
-           (org.jgrapht.alg.flow PushRelabelMFImpl)
+           (org.jgrapht.alg.flow DinicMFImpl
+                                  EdmondsKarpMFImpl
+                                  GusfieldGomoryHuCutTree
+                                  PushRelabelMFImpl)
+           (org.jgrapht.alg.flow.mincost CapacityScalingMinimumCostFlow
+                                          MinimumCostFlowProblem$MinimumCostFlowProblemImpl)
            (org.jgrapht.alg.spanning BoruvkaMinimumSpanningTree
                                      EsauWilliamsCapacitatedMinimumSpanningTree
                                      GreedyMultiplicativeSpanner
@@ -754,6 +760,86 @@
   `{:weight w :source-partition #{...} :sink-partition #{...}}` (Push-Relabel)."
   [^Graph g source sink]
   (ensure-directed g :min-cut)
+  (let [impl (PushRelabelMFImpl. g)]
+    {:weight (.calculateMinCut impl source sink)
+     :source-partition (set (.getSourcePartition impl))
+     :sink-partition (set (.getSinkPartition impl))}))
+
+(defn- maximum-flow-result [^Graph g algorithm source sink]
+  (ensure-directed g :max-flow)
+  (let [^MaximumFlowAlgorithm$MaximumFlow flow (.getMaximumFlow algorithm source sink)]
+    {:value (double (.getValue flow))
+     :flow (into {}
+                 (for [[e f] (.getFlowMap flow)
+                       :let [f (double f)]
+                       :when (not (zero? f))]
+                   [(edge-pair g e) f]))}))
+
+(defn edmonds-karp-max-flow
+  "Maximum flow using Edmonds-Karp."
+  [^Graph g source sink]
+  (maximum-flow-result g (EdmondsKarpMFImpl. g) source sink))
+
+(defn push-relabel-max-flow
+  "Maximum flow using push-relabel."
+  [^Graph g source sink]
+  (maximum-flow-result g (PushRelabelMFImpl. g) source sink))
+
+(defn dinic-max-flow
+  "Maximum flow using Dinic's algorithm."
+  [^Graph g source sink]
+  (maximum-flow-result g (DinicMFImpl. g) source sink))
+
+(defn min-cost-flow
+  "Minimum-cost flow for integer `:supplies` and `:capacities` maps.
+  Edge weights are costs. Optional `:lower-bounds` defaults to zero."
+  [^Graph g {:keys [supplies capacities lower-bounds]
+             :or {supplies {} capacities {} lower-bounds {}}}]
+  (ensure-directed g :min-cost-flow)
+  (let [pair #(edge-pair g %)
+        node-supply (reify Function
+                      (apply [_ v] (int (get supplies v 0))))
+        lower-bound (reify Function
+                      (apply [_ e] (int (get lower-bounds (pair e) 0))))
+        upper-bound (reify Function
+                      (apply [_ e]
+                        (int (get capacities (pair e)
+                                  CapacityScalingMinimumCostFlow/CAP_INF))))
+        cost (reify Function
+               (apply [_ e] (double (.getEdgeWeight g e))))
+        problem (MinimumCostFlowProblem$MinimumCostFlowProblemImpl.
+                 g node-supply upper-bound lower-bound cost)
+        ^MinimumCostFlowAlgorithm$MinimumCostFlow flow
+        (.getMinimumCostFlow (CapacityScalingMinimumCostFlow.) problem)]
+    {:cost (.getCost flow)
+     :flow (into {}
+                 (for [[e f] (.getFlowMap flow)
+                       :let [f (double f)]
+                       :when (not (zero? f))]
+                   [(pair e) f]))}))
+
+(defn gomory-hu-tree
+  "Gomory-Hu cut tree as weighted `[u v weight]` edges."
+  [^Graph g]
+  (ensure-undirected g :gomory-hu-tree)
+  (let [^Graph tree (.getGomoryHuTree (GusfieldGomoryHuCutTree. g))]
+    {:edges (set (for [e (.edgeSet tree)]
+                   [(.getEdgeSource tree e)
+                    (.getEdgeTarget tree e)
+                    (.getEdgeWeight tree e)]))}))
+
+(defn minimum-cut
+  "Global minimum cut of an undirected graph."
+  [^Graph g]
+  (ensure-undirected g :minimum-cut)
+  (let [cut (StoerWagnerMinimumCut. g)]
+    {:weight (.minCutWeight cut)
+     :partition (set (.minCut cut))}))
+
+(defn minimum-st-cut
+  "Minimum source-to-sink cut with source and sink partitions."
+  [^Graph g source sink]
+  (ensure-directed g :minimum-st-cut)
   (let [impl (PushRelabelMFImpl. g)]
     {:weight (.calculateMinCut impl source sink)
      :source-partition (set (.getSourcePartition impl))

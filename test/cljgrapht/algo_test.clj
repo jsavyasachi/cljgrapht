@@ -317,7 +317,27 @@
       (a/max-flow (g/graph [[:s :t]]) :s :t)
       (is false "expected ex-info")
       (catch clojure.lang.ExceptionInfo e
-        (is (= :not-directed (:cljgrapht/error (ex-data e))))))))
+          (is (= :not-directed (:cljgrapht/error (ex-data e))))))))
+
+(deftest flow-and-cut-variants
+  (let [gr (g/weighted-digraph [[:s :a 3.0] [:s :b 2.0] [:a :t 2.0]
+                                [:b :t 3.0] [:a :b 1.0]])]
+    (doseq [flow [(a/edmonds-karp-max-flow gr :s :t)
+                  (a/push-relabel-max-flow gr :s :t)
+                  (a/dinic-max-flow gr :s :t)]]
+      (is (= 5.0 (:value flow))))
+    (is (= 5.0 (:weight (a/minimum-st-cut gr :s :t)))))
+  (let [network (g/weighted-digraph [[:s :t 2.0]])
+        result (a/min-cost-flow network
+                                {:supplies {:s 2 :t -2}
+                                 :capacities {[:s :t] 3}})]
+    (is (= 4.0 (:cost result)))
+    (is (= 2.0 (get-in result [:flow [:s :t]]))))
+  (let [gr (g/weighted-graph [[:a :b 10.0] [:a :c 1.0] [:b :c 1.0]])
+        cut (a/minimum-cut gr)
+        tree (a/gomory-hu-tree gr)]
+    (is (= 2.0 (:weight cut)))
+    (is (= 2 (count (:edges tree))))))
 
 (deftest coloring
   (testing "triangle needs three colors"
