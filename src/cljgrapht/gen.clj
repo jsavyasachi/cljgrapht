@@ -6,13 +6,22 @@
            (java.util.function Supplier)
            (org.jgrapht Graph)
            (org.jgrapht.generate BarabasiAlbertGraphGenerator
+                                  ComplementGraphGenerator
+                                  CompleteBipartiteGraphGenerator
                                   CompleteGraphGenerator
+                                  EmptyGraphGenerator
+                                  GeneralizedPetersenGraphGenerator
                                   GnpRandomGraphGenerator
                                   GraphGenerator
                                   GridGraphGenerator
+                                  HyperCubeGraphGenerator
+                                  LinearGraphGenerator
                                   RingGraphGenerator
                                   StarGraphGenerator
-                                  WattsStrogatzGraphGenerator)
+                                  WattsStrogatzGraphGenerator
+                                  WheelGraphGenerator
+                                  WindmillGraphsGenerator
+                                  WindmillGraphsGenerator$Mode)
            (org.jgrapht.graph AbstractBaseGraph)))
 
 (defn- int-supplier ^Supplier []
@@ -20,15 +29,27 @@
     (reify Supplier
       (get [_] (.getAndIncrement counter)))))
 
-(defn- graph-with-supplier ^Graph []
-  (let [^AbstractBaseGraph g (core/graph)]
-    (.setVertexSupplier g (int-supplier))
-    g))
+(defn- graph-with-supplier
+  (^Graph []
+   (graph-with-supplier {}))
+  (^Graph [{:keys [directed? weighted?]}]
+   (let [^AbstractBaseGraph g (cond
+                                (and directed? weighted?) (core/weighted-digraph)
+                                directed? (core/digraph)
+                                weighted? (core/weighted-graph)
+                                :else (core/graph))]
+     (.setVertexSupplier g (int-supplier))
+     g)))
 
-(defn- generate ^Graph [^GraphGenerator generator]
-  (let [g (graph-with-supplier)]
-    (.generateGraph generator g (HashMap.))
-    g))
+(defn- generate-into ^Graph [^GraphGenerator generator ^Graph g]
+  (.generateGraph generator g (HashMap.))
+  g)
+
+(defn- generate
+  (^Graph [^GraphGenerator generator]
+   (generate generator {}))
+  (^Graph [^GraphGenerator generator opts]
+   (generate-into generator (graph-with-supplier opts))))
 
 (defn complete-graph
   "A new undirected complete graph with integer vertices 0..n-1."
@@ -49,6 +70,59 @@
   "A new undirected rows-by-cols grid graph with integer vertices 0..n-1."
   ^Graph [rows cols]
   (generate (GridGraphGenerator. (int rows) (int cols))))
+
+(defn complete-bipartite-graph
+  "A new undirected complete bipartite graph with partition sizes n1 and n2."
+  ^Graph [n1 n2]
+  (generate (CompleteBipartiteGraphGenerator. (int n1) (int n2))))
+
+(defn linear-graph
+  "A new undirected path graph with integer vertices 0..n-1."
+  ^Graph [n]
+  (generate (LinearGraphGenerator. (int n))))
+
+(defn wheel-graph
+  "A new undirected wheel graph with n total vertices."
+  (^Graph [n]
+   (generate (WheelGraphGenerator. (int n))))
+  (^Graph [n {:keys [directed? inward-spokes?]
+              :or {inward-spokes? true}}]
+   (generate (WheelGraphGenerator. (int n) (boolean inward-spokes?))
+             {:directed? directed?})))
+
+(defn hypercube-graph
+  "A new undirected hypercube graph of dimension n."
+  ^Graph [n]
+  (generate (HyperCubeGraphGenerator. (int n))))
+
+(defn empty-graph
+  "A new undirected graph with n vertices and no edges."
+  ^Graph [n]
+  (generate (EmptyGraphGenerator. (int n))))
+
+(defn generalized-petersen-graph
+  "A new undirected generalized Petersen graph GP(n,k)."
+  ^Graph [n k]
+  (generate (GeneralizedPetersenGraphGenerator. (int n) (int k))))
+
+(defn windmill-graph
+  "A new windmill graph with m copies of K_n or C_n sharing one vertex."
+  ^Graph [mode m n]
+  (let [generator-mode (case mode
+                         :windmill WindmillGraphsGenerator$Mode/WINDMILL
+                         :dutch-windmill WindmillGraphsGenerator$Mode/DUTCHWINDMILL
+                         (throw (IllegalArgumentException.
+                                 (str "Unknown windmill mode: " mode))))]
+    (generate (WindmillGraphsGenerator. generator-mode (int m) (int n)))))
+
+(defn complement-graph
+  "A new complement of graph gr, optionally including missing self-loops."
+  (^Graph [^Graph gr]
+   (complement-graph gr {}))
+  (^Graph [^Graph gr {:keys [self-loops?]}]
+   (let [target (graph-with-supplier
+                 {:directed? (.. gr getType isDirected)})]
+     (generate-into (ComplementGraphGenerator. gr (boolean self-loops?)) target))))
 
 (defn gnp-random-graph
   "A new undirected Erdos-Renyi G(n,p) graph."
