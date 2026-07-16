@@ -181,6 +181,21 @@
         (catch clojure.lang.ExceptionInfo e
           (is (= :not-directed (:cljgrapht/error (ex-data e)))))))))
 
+(deftest cycle-algorithm-variants
+  (let [gr (g/digraph [[:a :b] [:b :c] [:c :a] [:b :d] [:d :b]])
+        expected #{#{:a :b :c} #{:b :d}}]
+    (is (= expected (set (map set (a/johnson-simple-cycles gr)))))
+    (is (= expected (set (map set (a/tarjan-simple-cycles gr)))))
+    (is (= expected (set (map set (a/szwarcfiter-lauer-simple-cycles gr))))))
+  (let [triangle (g/graph [[:a :b] [:b :c] [:c :a]])]
+    (is (= 3 (:length (a/cycle-basis triangle))))
+    (is (true? (a/eulerian? triangle)))
+    (is (= #{:a :b :c} (set (:path (a/eulerian-cycle triangle))))))
+  (let [path (g/graph [[:a :b] [:b :c]])
+        tour (a/chinese-postman path)]
+    (is (= 4.0 (:weight tour)))
+    (is (= (first (:path tour)) (last (:path tour))))))
+
 (deftest connected-components-undirected
   (let [gr (g/graph [[:a :b] [:c :d]])]
     (is (= #{#{:a :b} #{:c :d}} (set (a/connected-components gr))))))

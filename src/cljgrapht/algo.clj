@@ -10,7 +10,7 @@
   (:import (java.util Collection HashSet)
            (java.util.concurrent Executors ThreadPoolExecutor)
            (java.util.function Supplier)
-           (org.jgrapht Graph GraphPath)
+           (org.jgrapht Graph GraphPath GraphTests)
            (org.jgrapht.graph DefaultEdge DefaultWeightedEdge SimpleDirectedGraph)
            (org.jgrapht.graph.builder GraphTypeBuilder)
            (org.jgrapht.alg TransitiveClosure TransitiveReduction)
@@ -34,9 +34,14 @@
                                          GabowStrongConnectivityInspector
                                          KosarajuStrongConnectivityInspector)
            (org.jgrapht.alg.cycle CycleDetector
+                                  ChinesePostman
                                   ChordalityInspector
                                   DirectedSimpleCycles
-                                  JohnsonSimpleCycles)
+                                  HierholzerEulerianCycle
+                                  JohnsonSimpleCycles
+                                  PatonCycleBase
+                                  SzwarcfiterLauerSimpleCycles
+                                  TarjanSimpleCycles)
            (org.jgrapht.alg.clique BronKerboschCliqueFinder
                                    ChordalGraphMaxCliqueFinder
                                    DegeneracyBronKerboschCliqueFinder
@@ -445,6 +450,52 @@
   [^Graph g]
   (ensure-directed g :simple-cycles)
   (mapv vec (.findSimpleCycles ^DirectedSimpleCycles (JohnsonSimpleCycles. g))))
+
+(defn- directed-cycles [^Graph g operation ^DirectedSimpleCycles algorithm]
+  (ensure-directed g operation)
+  (mapv vec (.findSimpleCycles algorithm)))
+
+(defn johnson-simple-cycles
+  "Simple directed cycles using Johnson's algorithm."
+  [^Graph g]
+  (directed-cycles g :johnson-simple-cycles (JohnsonSimpleCycles. g)))
+
+(defn tarjan-simple-cycles
+  "Simple directed cycles using Tarjan's algorithm."
+  [^Graph g]
+  (directed-cycles g :tarjan-simple-cycles (TarjanSimpleCycles. g)))
+
+(defn szwarcfiter-lauer-simple-cycles
+  "Simple directed cycles using the Szwarcfiter-Lauer algorithm."
+  [^Graph g]
+  (directed-cycles g :szwarcfiter-lauer-simple-cycles
+                   (SzwarcfiterLauerSimpleCycles. g)))
+
+(defn cycle-basis
+  "Paton cycle basis as `{:cycles [[v ...] ...] :length n :weight w}`."
+  [^Graph g]
+  (ensure-undirected g :cycle-basis)
+  (let [basis (.getCycleBasis (PatonCycleBase. g))]
+    {:cycles (mapv #(vec (.getVertexList ^GraphPath %))
+                   (.getCyclesAsGraphPaths basis))
+     :length (.getLength basis)
+     :weight (.getWeight basis)}))
+
+(defn eulerian?
+  "True when `g` has an Eulerian cycle."
+  [^Graph g]
+  (GraphTests/isEulerian g))
+
+(defn eulerian-cycle
+  "Eulerian cycle as `{:path [v ...] :weight w}`, or nil when none exists."
+  [^Graph g]
+  (when (eulerian? g)
+    (path-result (.getEulerianCycle (HierholzerEulerianCycle.) g))))
+
+(defn chinese-postman
+  "Minimum closed walk covering every edge as `{:path [v ...] :weight w}`."
+  [^Graph g]
+  (path-result (.getCPPSolution (ChinesePostman.) g)))
 
 (defn topological-sort
   "Vector of vertices of directed acyclic graph `g` in topological order, or nil
