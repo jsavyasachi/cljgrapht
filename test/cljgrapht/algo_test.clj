@@ -1,5 +1,6 @@
 (ns cljgrapht.algo-test
   (:require [clojure.test :refer [deftest testing is]]
+            [clojure.set :as set]
             [cljgrapht.core :as g]
             [cljgrapht.algo :as a]))
 
@@ -421,6 +422,16 @@
                     (a/alpha-centrality star)]]
       (is (= #{:hub :a :b :c} (set (keys scores))))
       (is (= :hub (key (apply max-key val scores)))))))
+
+(deftest graph-clustering-algorithms
+  (let [gr (g/graph [[:a :b] [:b :c] [:c :a]
+                     [:d :e] [:e :f] [:f :d] [:c :d]])]
+    (doseq [method [:girvan-newman :k-spanning-tree]]
+      (let [clusters (a/clustering gr {:method method :k 2})]
+        (is (= 2 (count clusters)))
+        (is (= #{:a :b :c :d :e :f} (apply set/union clusters)))))
+    (let [clusters (a/clustering gr {:method :label-propagation})]
+      (is (= #{:a :b :c :d :e :f} (apply set/union clusters))))))
 
 (deftest graph-measurements
   (let [path (g/graph [[:a :b] [:b :c] [:c :d]])]

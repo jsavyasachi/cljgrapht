@@ -77,6 +77,9 @@
                                  PalmerHamiltonianCycle
                                  RandomTourTSP
                                  TwoOptHeuristicTSP)
+           (org.jgrapht.alg.clustering GirvanNewmanClustering
+                                       KSpanningTreeClustering
+                                       LabelPropagationClustering)
            (org.jgrapht.alg.flow DinicMFImpl
                                   EdmondsKarpMFImpl
                                   GusfieldGomoryHuCutTree
@@ -1007,6 +1010,27 @@
   "Global clustering coefficient of `g`."
   [^Graph g]
   (.getGlobalClusteringCoefficient (ClusteringCoefficient. g)))
+
+(defn clustering
+  "Partition vertices into clusters. Methods are `:label-propagation` (default),
+  `:girvan-newman`, and `:k-spanning-tree`; the latter two require `:k`."
+  ([^Graph g]
+   (clustering g {}))
+  ([^Graph g {:keys [method k] :or {method :label-propagation}}]
+   (ensure-undirected g :clustering)
+   (when (and (#{:girvan-newman :k-spanning-tree} method) (nil? k))
+     (throw (ex-info "Clustering method requires :k"
+                     {:cljgrapht/error :missing-option
+                      :cljgrapht/option :k
+                      :cljgrapht/algorithm method})))
+   (let [algorithm (case method
+                     :label-propagation (LabelPropagationClustering. g)
+                     :girvan-newman (GirvanNewmanClustering. g (int k))
+                     :k-spanning-tree (KSpanningTreeClustering. g (int k))
+                     (throw (ex-info "Unknown clustering method"
+                                     {:cljgrapht/error :unknown-algorithm
+                                      :cljgrapht/algorithm method})))]
+     (mapv set (.getClusters (.getClustering algorithm))))))
 
 (defn coreness
   "Map of vertex -> core number."
