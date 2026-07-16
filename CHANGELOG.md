@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. This change log follows
 the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [1.0.0] - 2026-07-16
+
+### Added
+- Full 1-to-1 API parity with JGraphT 1.5.3. All additions are backward compatible.
+- **core**: complete `org.jgrapht.Graph` interface — `remove-vertex`, `remove-edge`, `contains-vertex?`, `contains-edge?`, `degree`/`in-degree`/`out-degree`, `incident-edges`/`incoming-edges`/`outgoing-edges`, `edge-source`/`edge-target`/`endpoints`, `get-edge`/`all-edges`, `set-weight`, `order`, `size`, public `directed?`/`weighted?`, and `graph-type` introspection. A configurable `make-graph` constructor (multigraph/pseudograph, self-loop policy, custom vertex/edge suppliers). Six graph views: `unmodifiable-view`, `unweighted-view`, `undirected-view`, `edge-reversed-view`, `weighted-view`, `subgraph`.
+- **gen**: every generator in `org.jgrapht.generate` (complete/bipartite, linear, wheel, hypercube, empty, generalized Petersen, windmill, complement, Gnm/Gnp random and bipartite, Barabasi-Albert forest, Kleinberg small-world, scale-free, random-regular, Prüfer tree, planted partition, directed scale-free, linearized chord diagram, weighted matrix) plus the full `NamedGraphGenerator` catalog (44 named graphs) via keyword dispatch.
+- **algo**: every algorithm family in `org.jgrapht.alg` — shortest-path variants (bidirectional/delta-stepping/contraction-hierarchy/Yen/Suurballe/all-directed-paths/transitive reduction+closure), cycle enumeration variants + cycle basis + Eulerian + Chinese postman, matching variants + assignment, max-flow variants + min-cost flow + Gomory-Hu + global and s-t min cut, coloring variants, clique/chordal algorithms, vertex cover (exact + 2-approx), independent set, TSP (exact + heuristics), centrality/scoring, clustering, graph measures (diameter/radius/center/periphery/eccentricity/girth), connectivity/blocks/articulation points/bridges/biconnectivity/condensation, isomorphism variants + tree edit distance, planarity + Kuratowski subdivision, and Dulmage-Mendelsohn decomposition.
+- **io**: import/export parity with `org.jgrapht.nio` — GraphML import (export already present), GML, JSON, CSV, DIMACS, graph6/sparse6, matrix export, GEXF, Visio export, and Lemon export, with weighted round-trips and vertex-attribute support.
+
 ## [0.4.2] - 2026-07-16
 
 ### Changed
