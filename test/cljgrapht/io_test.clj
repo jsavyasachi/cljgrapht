@@ -166,3 +166,15 @@
       (is (re-find #"<edges>" (slurp f)))
       (finally
         (.delete f)))))
+
+(deftest visio-export-and-write
+  (let [gr (g/digraph [[:a :b]])
+        s (gio/visio gr)
+        f (java.io.File/createTempFile "cljgrapht" ".csv")]
+    (try
+      (is (re-find #"(?m)^Shape," s))
+      (is (re-find #"(?m)^Link," s))
+      (gio/write-visio! gr (.getPath f))
+      (is (= s (slurp f)))
+      (finally
+        (.delete f)))))

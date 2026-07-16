@@ -8,7 +8,8 @@
            (java.util.function Function)
            (org.jgrapht Graph)
            (org.jgrapht.nio DefaultAttribute GraphExporter)
-           (org.jgrapht.nio.csv CSVExporter CSVFormat CSVFormat$Parameter CSVImporter)
+           (org.jgrapht.nio.csv CSVExporter CSVFormat CSVFormat$Parameter CSVImporter
+                                VisioExporter)
            (org.jgrapht.nio.dimacs DIMACSExporter DIMACSExporter$Parameter
                                     DIMACSFormat DIMACSImporter)
            (org.jgrapht.nio.dot DOTExporter DOTImporter)
@@ -434,3 +435,13 @@
                                   (apply [_ id] id)))
     (.importGraph importer g (StringReader. s))
     g))
+
+(defn visio
+  "Visio CSV string for `g`."
+  ^String [^Graph g]
+  (export-string (VisioExporter. (id-provider)) g))
+
+(defn write-visio!
+  "Write `(visio g)` to `path`, returning nil."
+  [^Graph g path]
+  (spit path (visio g)))
