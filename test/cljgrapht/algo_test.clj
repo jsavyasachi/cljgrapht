@@ -171,6 +171,22 @@
       (catch clojure.lang.ExceptionInfo e
         (is (= :mixed-direction (:cljgrapht/error (ex-data e))))))))
 
+(deftest isomorphism-and-tree-similarity-variants
+  (is (true? (a/subgraph-isomorphic?
+              (g/graph [[:a :b] [:b :c]])
+              (g/graph [[1 2]]))))
+  (is (false? (a/subgraph-isomorphic?
+               (g/graph [[:a :b]])
+               (g/graph [[1 2] [2 3]]))))
+  (let [t1 (g/graph [[:a :b] [:a :c]])
+        t2 (g/graph [[1 2] [1 3]])]
+    (is (true? (a/tree-isomorphic? t1 t2)))
+    (is (true? (a/tree-isomorphic? t1 :a t2 1)))
+    (is (true? (a/color-refinement-isomorphic? t1 t2))))
+  (is (= 1.0
+         (a/tree-edit-distance (g/graph [[:a :b]]) :a
+                               (g/graph [[:a :b] [:a :c]]) :a))))
+
 (deftest simple-cycles-directed
   (let [gr (g/digraph [[:a :b] [:b :c] [:c :a] [:b :d] [:d :b]])]
     (is (= #{#{:a :b :c} #{:b :d}}

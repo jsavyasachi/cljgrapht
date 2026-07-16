@@ -107,7 +107,12 @@
                                     PageRank)
            (org.jgrapht.alg.partition BipartitePartitioning)
            (org.jgrapht.alg.independentset ChordalGraphIndependentSetFinder)
-           (org.jgrapht.alg.isomorphism VF2GraphIsomorphismInspector)
+           (org.jgrapht.alg.isomorphism AHURootedTreeIsomorphismInspector
+                                          AHUUnrootedTreeIsomorphismInspector
+                                          ColorRefinementIsomorphismInspector
+                                          VF2GraphIsomorphismInspector
+                                          VF2SubgraphIsomorphismInspector)
+           (org.jgrapht.alg.similarity ZhangShashaTreeEditDistance)
            (org.jgrapht.traverse BreadthFirstIterator
                                  DepthFirstIterator
                                  TopologicalOrderIterator)))
@@ -847,6 +852,37 @@
   (when (not= (directed? g1) (directed? g2))
     (throw (mixed-direction :isomorphic?)))
   (.isomorphismExists (VF2GraphIsomorphismInspector. g1 g2)))
+
+(defn subgraph-isomorphic?
+  "True if `subgraph` is isomorphic to a subgraph of `g`."
+  [^Graph g ^Graph subgraph]
+  (when (not= (directed? g) (directed? subgraph))
+    (throw (mixed-direction :subgraph-isomorphic?)))
+  (.isomorphismExists (VF2SubgraphIsomorphismInspector. g subgraph)))
+
+(defn tree-isomorphic?
+  "AHU tree-isomorphism predicate. The four-argument form fixes both roots."
+  ([^Graph tree1 ^Graph tree2]
+   (ensure-undirected tree1 :tree-isomorphic?)
+   (ensure-undirected tree2 :tree-isomorphic?)
+   (.isomorphismExists (AHUUnrootedTreeIsomorphismInspector. tree1 tree2)))
+  ([^Graph tree1 root1 ^Graph tree2 root2]
+   (ensure-undirected tree1 :tree-isomorphic?)
+   (ensure-undirected tree2 :tree-isomorphic?)
+   (.isomorphismExists
+    (AHURootedTreeIsomorphismInspector. tree1 root1 tree2 root2))))
+
+(defn color-refinement-isomorphic?
+  "True when color refinement proves `g1` and `g2` isomorphic."
+  [^Graph g1 ^Graph g2]
+  (when (not= (directed? g1) (directed? g2))
+    (throw (mixed-direction :color-refinement-isomorphic?)))
+  (.isomorphismExists (ColorRefinementIsomorphismInspector. g1 g2)))
+
+(defn tree-edit-distance
+  "Zhang-Shasha edit distance between two rooted ordered trees."
+  [^Graph tree1 root1 ^Graph tree2 root2]
+  (.getDistance (ZhangShashaTreeEditDistance. tree1 root1 tree2 root2)))
 
 (defn max-flow
   "Maximum `source`->`sink` flow in directed graph `g` as
