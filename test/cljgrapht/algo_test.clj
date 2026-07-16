@@ -155,6 +155,24 @@
   (let [gr (g/digraph [[:a :b] [:b :a] [:c :d]])]
     (is (= #{#{:a :b} #{:c} #{:d}} (set (a/strongly-connected-components gr))))))
 
+(deftest connectivity-inspector-variants-and-blocks
+  (let [gr (g/graph [[:a :b] [:b :c] [:c :a]
+                     [:c :d] [:d :e] [:e :c] [:c :f]])]
+    (is (= #{:c} (a/articulation-points gr)))
+    (is (= #{#{:c :f}} (set (map set (a/bridges gr)))))
+    (is (= #{#{:a :b :c} #{:c :d :e} #{:c :f}}
+           (set (a/biconnected-components gr))))
+    (is (= (set (a/biconnected-components gr)) (set (a/blocks gr))))
+    (let [tree (a/block-cut-tree gr)]
+      (is (= #{:c} (:articulation-points tree)))
+      (is (= 3 (count (:edges tree))))))
+  (let [gr (g/digraph [[:a :b] [:b :a] [:b :c] [:c :d] [:d :c]])
+        expected #{#{:a :b} #{:c :d}}]
+    (is (= expected (set (a/gabow-strongly-connected-components gr))))
+    (is (= expected (set (a/kosaraju-strongly-connected-components gr))))
+    (is (= {:components expected :edges #{[#{:a :b} #{:c :d}]}}
+           (a/condensation gr)))))
+
 (deftest topological-and-cycles
   (testing "DAG sorts with sources before sinks; no cycle"
     (let [dag (g/digraph [[:a :b] [:a :c] [:b :d] [:c :d]])

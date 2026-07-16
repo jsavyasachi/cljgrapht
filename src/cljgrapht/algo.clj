@@ -24,6 +24,8 @@
                                        PartitioningAlgorithm$Partitioning
                                        ShortestPathAlgorithm$SingleSourcePaths)
            (org.jgrapht.alg.connectivity ConnectivityInspector
+                                         BiconnectivityInspector
+                                         GabowStrongConnectivityInspector
                                          KosarajuStrongConnectivityInspector)
            (org.jgrapht.alg.cycle CycleDetector
                                   DirectedSimpleCycles
@@ -256,6 +258,68 @@
   "Seq of vertex sets, one per strongly-connected component (directed)."
   [^Graph g]
   (map set (.stronglyConnectedSets (KosarajuStrongConnectivityInspector. g))))
+
+(defn gabow-strongly-connected-components
+  "Seq of strongly-connected vertex sets using Gabow's algorithm."
+  [^Graph g]
+  (ensure-directed g :gabow-strongly-connected-components)
+  (map set (.stronglyConnectedSets (GabowStrongConnectivityInspector. g))))
+
+(defn kosaraju-strongly-connected-components
+  "Seq of strongly-connected vertex sets using Kosaraju's algorithm."
+  [^Graph g]
+  (ensure-directed g :kosaraju-strongly-connected-components)
+  (map set (.stronglyConnectedSets (KosarajuStrongConnectivityInspector. g))))
+
+(defn articulation-points
+  "Set of articulation vertices in an undirected graph."
+  [^Graph g]
+  (ensure-undirected g :articulation-points)
+  (set (.getCutpoints (BiconnectivityInspector. g))))
+
+(defn bridges
+  "Set of bridge edges as `[source target]` pairs in an undirected graph."
+  [^Graph g]
+  (ensure-undirected g :bridges)
+  (set (map #(edge-pair g %) (.getBridges (BiconnectivityInspector. g)))))
+
+(defn biconnected-components
+  "Seq of vertex sets, one per maximal biconnected block."
+  [^Graph g]
+  (ensure-undirected g :biconnected-components)
+  (map #(set (.vertexSet ^Graph %)) (.getBlocks (BiconnectivityInspector. g))))
+
+(defn blocks
+  "Seq of vertex sets, one per block of an undirected graph."
+  [^Graph g]
+  (biconnected-components g))
+
+(defn block-cut-tree
+  "Block-cut tree as block sets, articulation vertices, and `[block cutpoint]`
+  edges."
+  [^Graph g]
+  (ensure-undirected g :block-cut-tree)
+  (let [block-sets (set (biconnected-components g))
+        cutpoints (articulation-points g)]
+    {:blocks block-sets
+     :articulation-points cutpoints
+     :edges (set (for [block block-sets
+                       cutpoint cutpoints
+                       :when (contains? block cutpoint)]
+                   [block cutpoint]))}))
+
+(defn condensation
+  "Condensation DAG of a directed graph as SCC vertex sets and edges between
+  those sets."
+  [^Graph g]
+  (ensure-directed g :condensation)
+  (let [^Graph condensed (.getCondensation
+                          (KosarajuStrongConnectivityInspector. g))
+        component (fn [^Graph subgraph] (set (.vertexSet subgraph)))]
+    {:components (set (map component (.vertexSet condensed)))
+     :edges (set (for [e (.edgeSet condensed)]
+                   [(component (.getEdgeSource condensed e))
+                    (component (.getEdgeTarget condensed e))]))}))
 
 (defn connected?
   "True if `g` is connected. Directed graphs are checked as weakly connected."
