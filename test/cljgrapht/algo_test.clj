@@ -256,3 +256,11 @@
             pr (a/pagerank star)]
         (is (= :hub (key (apply max-key val bc))))
         (is (= :hub (key (apply max-key val pr))))))))
+
+(deftest additional-centrality-algorithms
+  (let [star (g/graph [[:hub :a] [:hub :b] [:hub :c]])]
+    (doseq [scores [(a/harmonic-centrality star)
+                    (a/eigenvector-centrality star)
+                    (a/alpha-centrality star)]]
+      (is (= #{:hub :a :b :c} (set (keys scores))))
+      (is (= :hub (key (apply max-key val scores)))))))

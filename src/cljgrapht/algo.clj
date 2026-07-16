@@ -47,6 +47,9 @@
                                     ClosenessCentrality
                                     ClusteringCoefficient
                                     Coreness
+                                    EigenvectorCentrality
+                                    HarmonicCentrality
+                                    KatzCentrality
                                     PageRank)
            (org.jgrapht.alg.partition BipartitePartitioning)
            (org.jgrapht.alg.isomorphism VF2GraphIsomorphismInspector)
@@ -454,3 +457,21 @@
   "Map of vertex -> PageRank score."
   [^Graph g]
   (into {} (.getScores (PageRank. g))))
+
+(defn harmonic-centrality
+  "Map of vertex -> harmonic centrality score."
+  [^Graph g]
+  (into {} (.getScores (HarmonicCentrality. g))))
+
+(defn eigenvector-centrality
+  "Map of vertex -> eigenvector centrality score."
+  [^Graph g]
+  (into {} (.getScores (EigenvectorCentrality. g))))
+
+(defn alpha-centrality
+  "Map of vertex -> alpha-attenuated (Katz) centrality score. `alpha` defaults
+  to JGraphT's damping factor."
+  ([^Graph g]
+   (into {} (.getScores (KatzCentrality. g))))
+  ([^Graph g alpha]
+   (into {} (.getScores (KatzCentrality. g (double alpha))))))
