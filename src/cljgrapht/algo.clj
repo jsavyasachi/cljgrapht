@@ -17,6 +17,7 @@
                                          BellmanFordShortestPath
                                          DijkstraShortestPath
                                          FloydWarshallShortestPaths
+                                         GraphMeasurer
                                          JohnsonShortestPaths
                                          YenKShortestPath)
            (org.jgrapht.alg.interfaces AStarAdmissibleHeuristic
@@ -475,3 +476,73 @@
    (into {} (.getScores (KatzCentrality. g))))
   ([^Graph g alpha]
    (into {} (.getScores (KatzCentrality. g (double alpha))))))
+
+(defn diameter
+  "Maximum shortest-path distance between any two vertices."
+  [^Graph g]
+  (.getDiameter (GraphMeasurer. g)))
+
+(defn radius
+  "Minimum vertex eccentricity."
+  [^Graph g]
+  (.getRadius (GraphMeasurer. g)))
+
+(defn graph-center
+  "Set of vertices whose eccentricity equals the graph radius."
+  [^Graph g]
+  (set (.getGraphCenter (GraphMeasurer. g))))
+
+(defn graph-periphery
+  "Set of vertices whose eccentricity equals the graph diameter."
+  [^Graph g]
+  (set (.getGraphPeriphery (GraphMeasurer. g))))
+
+(defn pseudo-periphery
+  "Set of vertices whose neighbors have no greater eccentricity."
+  [^Graph g]
+  (set (.getGraphPseudoPeriphery (GraphMeasurer. g))))
+
+(defn vertex-eccentricities
+  "Map of vertex -> maximum shortest-path distance to another vertex."
+  [^Graph g]
+  (into {} (.getVertexEccentricityMap (GraphMeasurer. g))))
+
+(defn- girth-from [^Graph g root]
+  (loop [queue (conj clojure.lang.PersistentQueue/EMPTY root)
+         distances {root 0}
+         parent-edges {}
+         best Long/MAX_VALUE]
+    (if (empty? queue)
+      best
+      (let [v (peek queue)
+            queue (pop queue)
+            distance (distances v)
+            [queue distances parent-edges best]
+            (reduce
+             (fn [[q ds ps shortest] e]
+               (let [source (.getEdgeSource g e)
+                     target (.getEdgeTarget g e)
+                     neighbor (if (= v source) target source)]
+                 (cond
+                   (not (contains? ds neighbor))
+                   [(conj q neighbor)
+                    (assoc ds neighbor (inc distance))
+                    (assoc ps neighbor e)
+                    shortest]
+
+                   (not= e (get ps v))
+                   [q ds ps (min shortest (inc (+ distance (ds neighbor))))]
+
+                   :else [q ds ps shortest])))
+             [queue distances parent-edges best]
+             (.edgesOf g v))]
+        (recur queue distances parent-edges best)))))
+
+(defn girth
+  "Length of the shortest cycle in an undirected graph, or nil when acyclic."
+  [^Graph g]
+  (ensure-undirected g :girth)
+  (let [length (reduce min Long/MAX_VALUE
+                       (map #(girth-from g %) (.vertexSet g)))]
+    (when-not (= Long/MAX_VALUE length)
+      length)))

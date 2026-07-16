@@ -264,3 +264,15 @@
                     (a/alpha-centrality star)]]
       (is (= #{:hub :a :b :c} (set (keys scores))))
       (is (= :hub (key (apply max-key val scores)))))))
+
+(deftest graph-measurements
+  (let [path (g/graph [[:a :b] [:b :c] [:c :d]])]
+    (is (= 3.0 (a/diameter path)))
+    (is (= 2.0 (a/radius path)))
+    (is (= #{:b :c} (a/graph-center path)))
+    (is (= #{:a :d} (a/graph-periphery path)))
+    (is (= #{:a :d} (a/pseudo-periphery path)))
+    (is (= {:a 3.0 :b 2.0 :c 2.0 :d 3.0}
+           (a/vertex-eccentricities path))))
+  (is (= 3 (a/girth (g/graph [[:a :b] [:b :c] [:c :a]]))))
+  (is (nil? (a/girth (g/graph [[:a :b] [:b :c]])))))
