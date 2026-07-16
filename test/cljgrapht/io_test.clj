@@ -115,6 +115,12 @@
       (finally
         (.delete f)))))
 
+(deftest csv-custom-delimiter-weighted-round-trip
+  (let [gr (g/weighted-graph [[:a :b 2.5]])
+        opts {:format :adjacency-list :delimiter \;}
+        imported (gio/read-csv (gio/csv gr opts) opts)]
+    (is (= #{2.5} (set (map #(nth % 2) (g/edges imported)))))))
+
 (deftest dimacs-formats-and-round-trip
   (let [weighted (g/weighted-digraph [[:a :b 2.5] [:b :c 4.0]])
         s (gio/dimacs weighted {:format :shortest-path})

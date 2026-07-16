@@ -285,12 +285,26 @@
 (defn- csv-weighted? [s format delimiter]
   (let [lines (remove str/blank? (str/split-lines s))
         fields #(str/split % (re-pattern (java.util.regex.Pattern/quote
-                                          (str delimiter))))]
+                                          (str delimiter))))
+        number? (fn [value]
+                  (try
+                    (Double/parseDouble value)
+                    true
+                    (catch NumberFormatException _ false)))]
     (case format
       :edge-list (some #(>= (count (fields %)) 3) lines)
-      :adjacency-list (some #(re-find #"(?:^|,)-?\d+\.\d+(?:,|$)" %) lines)
-      :matrix (some #(re-find #"(?:^|,)-?(?![01](?:\.0)?(?:,|$))\d+(?:\.\d+)?(?:,|$)" %)
-                    lines))))
+      :adjacency-list
+      (some (fn [line]
+              (let [tail (rest (fields line))
+                    weights (take-nth 2 (rest tail))]
+                (and (seq tail) (even? (count tail))
+                     (every? number? weights))))
+            lines)
+      :matrix
+      (some (fn [value]
+              (when (number? value)
+                (not (#{0.0 1.0} (Double/parseDouble value)))))
+            (mapcat #(rest (fields %)) (rest lines))))))
 
 (defn- as-undirected [^Graph source weighted?]
   (let [^Graph target (graph-for false weighted?)
