@@ -1,5 +1,5 @@
 (ns cljgrapht.io
-  "DOT and GraphML import/export for `cljgrapht.core` graphs."
+  "Graph import and export for `cljgrapht.core` graphs."
   (:require [cljgrapht.core :as core]
             [clojure.java.io :as jio]
             [clojure.string :as str])
