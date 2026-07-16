@@ -7,7 +7,7 @@
            (java.util Collections)
            (java.util.function BiConsumer Function)
            (org.jgrapht Graph)
-           (org.jgrapht.nio DefaultAttribute GraphExporter)
+           (org.jgrapht.nio AttributeType DefaultAttribute GraphExporter)
            (org.jgrapht.nio.csv CSVExporter CSVFormat CSVFormat$Parameter CSVImporter
                                 VisioExporter)
            (org.jgrapht.nio.dimacs DIMACSExporter DIMACSExporter$Parameter
@@ -20,7 +20,9 @@
            (org.jgrapht.nio.graph6 Graph6Sparse6Exporter
                                    Graph6Sparse6Exporter$Format
                                    Graph6Sparse6Importer)
-           (org.jgrapht.nio.graphml GraphMLExporter GraphMLImporter)
+           (org.jgrapht.nio.graphml GraphMLExporter
+                                    GraphMLExporter$AttributeCategory
+                                    GraphMLImporter)
            (org.jgrapht.nio.json JSONExporter JSONImporter)
            (org.jgrapht.nio.lemon LemonExporter LemonExporter$Parameter)
            (org.jgrapht.nio.matrix MatrixExporter MatrixExporter$Format)))
@@ -64,6 +66,15 @@
     (instance? Float v) (DefaultAttribute/createAttribute ^Float v)
     (instance? Double v) (DefaultAttribute/createAttribute ^Double v)
     :else (DefaultAttribute/createAttribute (str v))))
+
+(defn- attribute-type [v]
+  (cond
+    (instance? Boolean v) AttributeType/BOOLEAN
+    (instance? Integer v) AttributeType/INT
+    (instance? Long v) AttributeType/LONG
+    (instance? Float v) AttributeType/FLOAT
+    (instance? Double v) AttributeType/DOUBLE
+    :else AttributeType/STRING))
 
 (defn- attribute-provider ^Function [attributes]
   (reify Function
@@ -151,16 +162,23 @@
 
 (defn graphml
   "GraphML string for `g` with sanitized `pr-str` vertex ids."
-  [^Graph g]
-  (let [^GraphMLExporter exporter (GraphMLExporter. (id-provider))]
-    (.setExportVertexLabels exporter true)
-    (.setExportEdgeWeights exporter true)
-    (export-string exporter g)))
+  (^String [^Graph g] (graphml g {}))
+  (^String [^Graph g {:keys [attributes]}]
+   (let [^GraphMLExporter exporter (GraphMLExporter. (id-provider))]
+     (.setExportVertexLabels exporter true)
+     (.setExportEdgeWeights exporter true)
+     (when attributes
+       (doseq [[k v] (->> attributes vals (mapcat seq) (into {}))]
+         (.registerAttribute exporter (name k)
+                             GraphMLExporter$AttributeCategory/NODE
+                             (attribute-type v)))
+       (.setVertexAttributeProvider exporter (attribute-provider attributes)))
+     (export-string exporter g))))
 
 (defn write-graphml!
   "Write `(graphml g)` to `path`, returning nil."
-  [^Graph g path]
-  (spit path (graphml g)))
+  ([^Graph g path] (write-graphml! g path {}))
+  ([^Graph g path opts] (spit path (graphml g opts))))
 
 (defn read-graphml
   "Read a GraphML string or existing path. Imported vertices are GraphML id

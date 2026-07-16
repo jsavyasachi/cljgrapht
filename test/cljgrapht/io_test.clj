@@ -61,6 +61,13 @@
     (is (= #{["_a" "_b" 2.5] ["_b" "_c" 4.0]}
            (set (g/edges imported))))))
 
+(deftest graphml-vertex-attributes
+  (let [s (gio/graphml (g/graph [[:a :b]])
+                       {:attributes {:a {:color "red" :rank 2}}})]
+    (is (re-find #"attr.name=\"color\"" s))
+    (is (re-find #">red</data>" s))
+    (is (re-find #"attr.name=\"rank\"" s))))
+
 (deftest gml-export-write-and-import
   (let [gr (g/weighted-digraph [[:a :b 2.5] [:b :c 4.0]])
         s (gio/gml gr)
