@@ -13,6 +13,9 @@
                                     DIMACSFormat DIMACSImporter)
            (org.jgrapht.nio.dot DOTExporter DOTImporter)
            (org.jgrapht.nio.gml GmlExporter GmlExporter$Parameter GmlImporter)
+           (org.jgrapht.nio.graph6 Graph6Sparse6Exporter
+                                   Graph6Sparse6Exporter$Format
+                                   Graph6Sparse6Importer)
            (org.jgrapht.nio.graphml GraphMLExporter GraphMLImporter)
            (org.jgrapht.nio.json JSONExporter JSONImporter)))
 
@@ -322,6 +325,37 @@
                      (boolean (re-find #"(?m)^[ae]\s+\d+\s+\d+\s+[-+]?\d" s)))
          ^Graph g (graph-for directed? weighted?)
          ^DIMACSImporter importer (DIMACSImporter.)]
+     (.setVertexFactory importer (reify Function
+                                   (apply [_ id] id)))
+     (.importGraph importer g (StringReader. s))
+     g)))
+
+(defn- graph6-format [format]
+  (case format
+    :graph6 Graph6Sparse6Exporter$Format/GRAPH6
+    :sparse6 Graph6Sparse6Exporter$Format/SPARSE6
+    (throw (IllegalArgumentException.
+            (str "Unsupported graph6 format: " (pr-str format))))))
+
+(defn graph6
+  "graph6 or sparse6 string for undirected `g`."
+  (^String [^Graph g] (graph6 g {}))
+  (^String [^Graph g {:keys [format] :or {format :graph6}}]
+   (export-string (Graph6Sparse6Exporter. (graph6-format format)) g)))
+
+(defn write-graph6!
+  "Write `(graph6 g opts)` to `path`, returning nil."
+  ([^Graph g path] (write-graph6! g path {}))
+  ([^Graph g path opts] (spit path (graph6 g opts))))
+
+(defn read-graph6
+  "Read graph6 or sparse6 from a string or existing path. Imported vertices are
+  zero-based integer ids."
+  ([path-or-string] (read-graph6 path-or-string {}))
+  ([path-or-string _opts]
+   (let [s (input-string path-or-string)
+         ^Graph g (core/graph)
+         ^Graph6Sparse6Importer importer (Graph6Sparse6Importer.)]
      (.setVertexFactory importer (reify Function
                                    (apply [_ id] id)))
      (.importGraph importer g (StringReader. s))

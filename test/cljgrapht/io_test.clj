@@ -119,3 +119,20 @@
       (is (re-find #"(?m)^p col" (slurp f)))
       (finally
         (.delete f)))))
+
+(deftest graph6-and-sparse6-round-trip
+  (let [gr (g/graph [[:a :b] [:b :c]])]
+    (doseq [format [:graph6 :sparse6]]
+      (let [s (gio/graph6 gr {:format format})
+            imported (gio/read-graph6 s)]
+        (is (= 3 (count (g/vertices imported))) (name format))
+        (is (= 2 (count (g/edges imported))) (name format))))))
+
+(deftest graph6-write
+  (let [f (java.io.File/createTempFile "cljgrapht" ".g6")]
+    (try
+      (gio/write-graph6! (g/graph [[:a :b]]) (.getPath f)
+                         {:format :graph6})
+      (is (seq (slurp f)))
+      (finally
+        (.delete f)))))
