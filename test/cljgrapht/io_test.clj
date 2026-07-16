@@ -82,3 +82,21 @@
       (is (re-find #"\"edges\"" (slurp f)))
       (finally
         (.delete f)))))
+
+(deftest csv-formats-round-trip
+  (let [gr (g/weighted-graph [[:a :b 2.5] [:b :c 4.0]])]
+    (doseq [format [:edge-list :adjacency-list :matrix]]
+      (let [s (gio/csv gr {:format format})
+            imported (gio/read-csv s {:format format})]
+        (is (= 3 (count (g/vertices imported))) (name format))
+        (is (= #{2.5 4.0} (set (map #(nth % 2) (g/edges imported))))
+            (name format))))))
+
+(deftest csv-write
+  (let [gr (g/graph [[:a :b]])
+        f (java.io.File/createTempFile "cljgrapht" ".csv")]
+    (try
+      (gio/write-csv! gr (.getPath f) {:format :edge-list :delimiter \;})
+      (is (re-find #";" (slurp f)))
+      (finally
+        (.delete f)))))

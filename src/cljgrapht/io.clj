@@ -8,6 +8,7 @@
            (java.util.function Function)
            (org.jgrapht Graph)
            (org.jgrapht.nio DefaultAttribute GraphExporter)
+           (org.jgrapht.nio.csv CSVExporter CSVFormat CSVFormat$Parameter CSVImporter)
            (org.jgrapht.nio.dot DOTExporter DOTImporter)
            (org.jgrapht.nio.gml GmlExporter GmlExporter$Parameter GmlImporter)
            (org.jgrapht.nio.graphml GraphMLExporter GraphMLImporter)
@@ -201,3 +202,82 @@
                                    (apply [_ id] id)))
      (.importGraph importer g (StringReader. s))
      g)))
+
+(defn- csv-format [format]
+  (case format
+    :edge-list CSVFormat/EDGE_LIST
+    :adjacency-list CSVFormat/ADJACENCY_LIST
+    :matrix CSVFormat/MATRIX
+    (throw (IllegalArgumentException.
+            (str "Unsupported CSV format: " (pr-str format))))))
+
+(defn csv
+  "CSV string for `g`. `:format` is `:edge-list`, `:adjacency-list`, or
+  `:matrix`; `:delimiter` defaults to a comma."
+  (^String [^Graph g] (csv g {}))
+  (^String [^Graph g {:keys [format delimiter]
+                     :or {format :edge-list delimiter \,}}]
+   (let [format (csv-format format)
+         ^CSVExporter exporter (CSVExporter. format (char delimiter))]
+     (.setVertexIdProvider exporter (id-provider))
+     (when (.. g getType isWeighted)
+       (.setParameter exporter CSVFormat$Parameter/EDGE_WEIGHTS true))
+     (when (= format CSVFormat/MATRIX)
+       (.setParameter exporter CSVFormat$Parameter/MATRIX_FORMAT_NODEID true))
+     (export-string exporter g))))
+
+(defn write-csv!
+  "Write `(csv g opts)` to `path`, returning nil."
+  ([^Graph g path] (write-csv! g path {}))
+  ([^Graph g path opts] (spit path (csv g opts))))
+
+(defn- csv-weighted? [s format delimiter]
+  (let [lines (remove str/blank? (str/split-lines s))
+        fields #(str/split % (re-pattern (java.util.regex.Pattern/quote
+                                          (str delimiter))))]
+    (case format
+      :edge-list (some #(>= (count (fields %)) 3) lines)
+      :adjacency-list (some #(re-find #"(?:^|,)-?\d+\.\d+(?:,|$)" %) lines)
+      :matrix (some #(re-find #"(?:^|,)-?(?![01](?:\.0)?(?:,|$))\d+(?:\.\d+)?(?:,|$)" %)
+                    lines))))
+
+(defn- as-undirected [^Graph source weighted?]
+  (let [^Graph target (graph-for false weighted?)
+        seen (atom #{})]
+    (doseq [v (.vertexSet source)]
+      (core/add-vertex target v))
+    (doseq [e (.edgeSet source)]
+      (let [u (.getEdgeSource source e)
+            v (.getEdgeTarget source e)
+            endpoints #{u v}]
+        (when-not (contains? @seen endpoints)
+          (swap! seen conj endpoints)
+          (if weighted?
+            (core/add-edge target u v (.getEdgeWeight source e))
+            (core/add-edge target u v)))))
+    target))
+
+(defn read-csv
+  "Read CSV from a string or existing path. Supports `:format`, `:delimiter`,
+  `:directed?`, and `:weighted?` options."
+  ([path-or-string] (read-csv path-or-string {}))
+  ([path-or-string {:keys [format delimiter directed? weighted?]
+                    :or {format :edge-list delimiter \,}}]
+   (let [s (input-string path-or-string)
+         weighted? (if (nil? weighted?)
+                     (boolean (csv-weighted? s format delimiter))
+                     weighted?)
+         enum-format (csv-format format)
+         symmetrically-listed? (and (not directed?)
+                                    (#{:adjacency-list :matrix} format))
+         ^Graph g (graph-for (or directed? symmetrically-listed?) weighted?)
+         ^CSVImporter importer (CSVImporter. enum-format (char delimiter))]
+     (.setVertexFactory importer (reify Function
+                                   (apply [_ id] id)))
+     (.setParameter importer CSVFormat$Parameter/EDGE_WEIGHTS (boolean weighted?))
+     (when (= enum-format CSVFormat/MATRIX)
+       (.setParameter importer CSVFormat$Parameter/MATRIX_FORMAT_NODEID true))
+     (.importGraph importer g (StringReader. s))
+     (if symmetrically-listed?
+       (as-undirected g weighted?)
+       g))))
