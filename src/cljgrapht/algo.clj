@@ -114,6 +114,7 @@
                                           VF2SubgraphIsomorphismInspector)
            (org.jgrapht.alg.similarity ZhangShashaTreeEditDistance)
            (org.jgrapht.alg.planar BoyerMyrvoldPlanarityInspector)
+           (org.jgrapht.alg.decomposition DulmageMendelsohnDecomposition)
            (org.jgrapht.traverse BreadthFirstIterator
                                  DepthFirstIterator
                                  TopologicalOrderIterator)))
@@ -630,6 +631,21 @@
   (matching-result
    g (.getMatching (HopcroftKarpMaximumCardinalityBipartiteMatching.
                     g (HashSet. ^Collection part1) (HashSet. ^Collection part2)))))
+
+(defn dulmage-mendelsohn
+  "Dulmage-Mendelsohn decomposition of a bipartite graph. Set `:fine?` for the
+  fine decomposition of the perfectly matched part."
+  ([^Graph g part1 part2]
+   (dulmage-mendelsohn g part1 part2 {}))
+  ([^Graph g part1 part2 {:keys [fine?] :or {fine? false}}]
+   (ensure-undirected g :dulmage-mendelsohn)
+   (let [decomposition (.getDecomposition
+                        (DulmageMendelsohnDecomposition.
+                         g (HashSet. ^Collection part1) (HashSet. ^Collection part2))
+                        (boolean fine?))]
+     {:partition1-dominated (set (.getPartition1DominatedSet decomposition))
+      :partition2-dominated (set (.getPartition2DominatedSet decomposition))
+      :perfect-matched (mapv set (.getPerfectMatchedSets decomposition))})))
 
 (defn assignment
   "Minimum-weight perfect bipartite matching between `part1` and `part2`."

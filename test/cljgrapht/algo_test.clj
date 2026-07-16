@@ -325,6 +325,18 @@
     (is (number? (:weight (a/path-growing-weighted-matching k22))))
     (is (number? (:weight (a/greedy-weighted-matching k22))))))
 
+(deftest dulmage-mendelsohn-decomposition
+  (let [gr (g/graph [[:a :x] [:a :y] [:b :y]])
+        result (a/dulmage-mendelsohn gr #{:a :b} #{:x :y})]
+    (is (= #{:a :b :x :y}
+           (apply set/union
+                  (:partition1-dominated result)
+                  (:partition2-dominated result)
+                  (:perfect-matched result))))
+    (is (vector? (:perfect-matched result))))
+  (is (map? (a/dulmage-mendelsohn
+             (g/graph [[:a :x]]) #{:a} #{:x} {:fine? true}))))
+
 (deftest flow-and-cuts
   (let [gr (g/weighted-digraph [[:s :a 3.0] [:s :b 2.0] [:a :t 2.0]
                                 [:b :t 3.0] [:a :b 1.0]])]
