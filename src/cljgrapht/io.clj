@@ -22,6 +22,7 @@
                                    Graph6Sparse6Importer)
            (org.jgrapht.nio.graphml GraphMLExporter GraphMLImporter)
            (org.jgrapht.nio.json JSONExporter JSONImporter)
+           (org.jgrapht.nio.lemon LemonExporter LemonExporter$Parameter)
            (org.jgrapht.nio.matrix MatrixExporter MatrixExporter$Format)))
 
 (defn- valid-id? [^String s]
@@ -445,3 +446,16 @@
   "Write `(visio g)` to `path`, returning nil."
   [^Graph g path]
   (spit path (visio g)))
+
+(defn lemon
+  "Lemon graph format string for `g`."
+  ^String [^Graph g]
+  (let [^LemonExporter exporter (LemonExporter. (id-provider))]
+    (when (.. g getType isWeighted)
+      (.setParameter exporter LemonExporter$Parameter/EXPORT_EDGE_WEIGHTS true))
+    (export-string exporter g)))
+
+(defn write-lemon!
+  "Write `(lemon g)` to `path`, returning nil."
+  [^Graph g path]
+  (spit path (lemon g)))

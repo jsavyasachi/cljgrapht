@@ -178,3 +178,16 @@
       (is (= s (slurp f)))
       (finally
         (.delete f)))))
+
+(deftest lemon-export-and-write
+  (let [gr (g/weighted-digraph [[:a :b 2.5]])
+        s (gio/lemon gr)
+        f (java.io.File/createTempFile "cljgrapht" ".lgf")]
+    (try
+      (is (re-find #"@nodes" s))
+      (is (re-find #"@arcs" s))
+      (is (re-find #"2\.5" s))
+      (gio/write-lemon! gr (.getPath f))
+      (is (= s (slurp f)))
+      (finally
+        (.delete f)))))
