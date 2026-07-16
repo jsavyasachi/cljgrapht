@@ -158,6 +158,18 @@
       (is (= (/ 1.0 3.0) (a/density gr)))
       (is (= #{:d} (a/isolated-vertices gr))))))
 
+(deftest planarity-algorithms
+  (let [cycle (g/graph [[:a :b] [:b :c] [:c :d] [:d :a]])]
+    (is (true? (a/planar? cycle)))
+    (is (= #{:a :b :c :d} (set (keys (a/planar-embedding cycle)))))
+    (is (nil? (a/kuratowski-subdivision cycle))))
+  (let [k5 (g/graph [[1 2] [1 3] [1 4] [1 5]
+                     [2 3] [2 4] [2 5] [3 4] [3 5] [4 5]])
+        subdivision (a/kuratowski-subdivision k5)]
+    (is (false? (a/planar? k5)))
+    (is (= #{1 2 3 4 5} (:vertices subdivision)))
+    (is (= 10 (count (:edges subdivision))))))
+
 (deftest isomorphism
   (testing "VF2 graph isomorphism ignores vertex values by default"
     (is (true? (a/isomorphic? (g/graph [[:a :b] [:b :c]])

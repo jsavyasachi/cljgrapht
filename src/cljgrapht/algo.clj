@@ -113,6 +113,7 @@
                                           VF2GraphIsomorphismInspector
                                           VF2SubgraphIsomorphismInspector)
            (org.jgrapht.alg.similarity ZhangShashaTreeEditDistance)
+           (org.jgrapht.alg.planar BoyerMyrvoldPlanarityInspector)
            (org.jgrapht.traverse BreadthFirstIterator
                                  DepthFirstIterator
                                  TopologicalOrderIterator)))
@@ -844,6 +845,37 @@
   "Set of vertices with degree zero."
   [^Graph g]
   (set (filter #(zero? (.degreeOf g %)) (.vertexSet g))))
+
+(defn planar?
+  "True if the undirected graph is planar."
+  [^Graph g]
+  (ensure-undirected g :planar?)
+  (.isPlanar (BoyerMyrvoldPlanarityInspector. g)))
+
+(defn planar-embedding
+  "Planar rotation system as `{vertex [neighbor ...]}`; nil if nonplanar."
+  [^Graph g]
+  (ensure-undirected g :planar-embedding)
+  (let [inspector (BoyerMyrvoldPlanarityInspector. g)]
+    (when (.isPlanar inspector)
+      (let [embedding (.getEmbedding inspector)]
+        (into {}
+              (for [v (.vertexSet g)]
+                [v (mapv (fn [e]
+                           (let [u (.getEdgeSource g e)
+                                 w (.getEdgeTarget g e)]
+                             (if (= v u) w u)))
+                         (.getEdgesAround embedding v))]))))))
+
+(defn kuratowski-subdivision
+  "Kuratowski subdivision witness as vertex and edge sets; nil if planar."
+  [^Graph g]
+  (ensure-undirected g :kuratowski-subdivision)
+  (let [inspector (BoyerMyrvoldPlanarityInspector. g)]
+    (when-not (.isPlanar inspector)
+      (let [^Graph witness (.getKuratowskiSubdivision inspector)]
+        {:vertices (set (.vertexSet witness))
+         :edges (set (map #(edge-pair witness %) (.edgeSet witness)))}))))
 
 (defn isomorphic?
   "True if `g1` and `g2` are graph-isomorphic according to VF2. Rejects mixed
