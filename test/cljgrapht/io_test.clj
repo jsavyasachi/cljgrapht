@@ -46,3 +46,10 @@
         (is (= s (slurp (jio/file f)))))
       (finally
         (.delete f)))))
+
+(deftest graphml-import-round-trip
+  (let [gr (g/weighted-digraph [[:a :b 2.5] [:b :c 4.0]])
+        imported (gio/read-graphml (gio/graphml gr))]
+    (is (= #{"_a" "_b" "_c"} (g/vertices imported)))
+    (is (= #{["_a" "_b" 2.5] ["_b" "_c" 4.0]}
+           (set (g/edges imported))))))

@@ -9,7 +9,7 @@
            (org.jgrapht Graph)
            (org.jgrapht.nio DefaultAttribute GraphExporter)
            (org.jgrapht.nio.dot DOTExporter DOTImporter)
-           (org.jgrapht.nio.graphml GraphMLExporter)))
+           (org.jgrapht.nio.graphml GraphMLExporter GraphMLImporter)))
 
 (defn- valid-id? [^String s]
   (boolean (re-matches #"[A-Za-z_][A-Za-z0-9_]*|-?(\.[0-9]+|[0-9]+(\.[0-9]*)?)" s)))
@@ -59,6 +59,13 @@
 (defn- directed-dot? [^String s]
   (boolean (re-find #"(?is)^\s*(strict\s+)?digraph\b" s)))
 
+(defn- graph-for [directed? weighted?]
+  (cond
+    (and directed? weighted?) (core/weighted-digraph)
+    directed? (core/digraph)
+    weighted? (core/weighted-graph)
+    :else (core/graph)))
+
 (defn dot
   "DOT string for `g`. Vertex ids are sanitized `pr-str` values; labels keep the
   original `pr-str` for display."
@@ -89,9 +96,25 @@
   [^Graph g]
   (let [^GraphMLExporter exporter (GraphMLExporter. (id-provider))]
     (.setExportVertexLabels exporter true)
+    (.setExportEdgeWeights exporter true)
     (export-string exporter g)))
 
 (defn write-graphml!
   "Write `(graphml g)` to `path`, returning nil."
   [^Graph g path]
   (spit path (graphml g)))
+
+(defn read-graphml
+  "Read a GraphML string or existing path. Imported vertices are GraphML id
+  strings, not EDN parsed Clojure values."
+  [path-or-string]
+  (let [s (input-string path-or-string)
+        directed? (boolean (re-find #"(?i)edgedefault=\"directed\"" s))
+        weighted? (boolean (re-find #"(?i)attr\.name=\"weight\"" s))
+        ^Graph g (graph-for directed? weighted?)
+        ^GraphMLImporter importer (GraphMLImporter.)]
+    (.setSchemaValidation importer false)
+    (.setVertexFactory importer (reify Function
+                                  (apply [_ id] id)))
+    (.importGraph importer g (StringReader. s))
+    g))
