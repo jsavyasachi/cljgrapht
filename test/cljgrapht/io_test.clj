@@ -136,3 +136,18 @@
       (is (seq (slurp f)))
       (finally
         (.delete f)))))
+
+(deftest matrix-export-formats
+  (let [gr (g/graph [[:a :b] [:b :c]])]
+    (doseq [format [:adjacency-matrix :laplacian :normalized-laplacian]]
+      (let [s (gio/matrix gr {:format format})]
+        (is (string? s) (name format))
+        (is (re-find #"_a" s) (name format))))))
+
+(deftest matrix-write
+  (let [f (java.io.File/createTempFile "cljgrapht" ".mtx")]
+    (try
+      (gio/write-matrix! (g/graph [[:a :b]]) (.getPath f))
+      (is (re-find #"_a" (slurp f)))
+      (finally
+        (.delete f)))))

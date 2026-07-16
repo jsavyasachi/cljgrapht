@@ -17,7 +17,8 @@
                                    Graph6Sparse6Exporter$Format
                                    Graph6Sparse6Importer)
            (org.jgrapht.nio.graphml GraphMLExporter GraphMLImporter)
-           (org.jgrapht.nio.json JSONExporter JSONImporter)))
+           (org.jgrapht.nio.json JSONExporter JSONImporter)
+           (org.jgrapht.nio.matrix MatrixExporter MatrixExporter$Format)))
 
 (defn- valid-id? [^String s]
   (boolean (re-matches #"[A-Za-z_][A-Za-z0-9_]*|-?(\.[0-9]+|[0-9]+(\.[0-9]*)?)" s)))
@@ -360,3 +361,29 @@
                                    (apply [_ id] id)))
      (.importGraph importer g (StringReader. s))
      g)))
+
+(defn- matrix-format [format]
+  (case format
+    (:adjacency-matrix :sparse-adjacency-matrix)
+    MatrixExporter$Format/SPARSE_ADJACENCY_MATRIX
+
+    (:laplacian :sparse-laplacian-matrix)
+    MatrixExporter$Format/SPARSE_LAPLACIAN_MATRIX
+
+    (:normalized-laplacian :sparse-normalized-laplacian-matrix)
+    MatrixExporter$Format/SPARSE_NORMALIZED_LAPLACIAN_MATRIX
+
+    (throw (IllegalArgumentException.
+            (str "Unsupported matrix format: " (pr-str format))))))
+
+(defn matrix
+  "Sparse matrix string for `g`. `:format` is `:adjacency-matrix`,
+  `:laplacian`, or `:normalized-laplacian`."
+  (^String [^Graph g] (matrix g {}))
+  (^String [^Graph g {:keys [format] :or {format :adjacency-matrix}}]
+   (export-string (MatrixExporter. (matrix-format format) (id-provider)) g)))
+
+(defn write-matrix!
+  "Write `(matrix g opts)` to `path`, returning nil."
+  ([^Graph g path] (write-matrix! g path {}))
+  ([^Graph g path opts] (spit path (matrix g opts))))
