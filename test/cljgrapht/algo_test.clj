@@ -363,7 +363,23 @@
       (a/coloring (g/graph [[:a :b]]) {:algorithm :missing})
       (is false "expected ex-info")
       (catch clojure.lang.ExceptionInfo e
-        (is (= :unknown-algorithm (:cljgrapht/error (ex-data e))))))))
+          (is (= :unknown-algorithm (:cljgrapht/error (ex-data e))))))))
+
+(deftest vertex-cover-algorithms
+  (let [path (g/graph [[:a :b] [:b :c] [:c :d]])]
+    (is (= 2 (count (:vertices (a/min-vertex-cover path)))))
+    (doseq [cover [(a/greedy-vertex-cover path)
+                   (a/clarkson-two-approx-vertex-cover path)
+                   (a/bar-yehuda-even-two-approx-vertex-cover path)
+                   (a/edge-based-two-approx-vertex-cover path)]]
+      (is (every? (fn [[u v]]
+                    (or (contains? (:vertices cover) u)
+                        (contains? (:vertices cover) v)))
+                  (g/edges path)))))
+  (let [edge (g/graph [[:a :b]])
+        cover (a/min-vertex-cover edge {:a 10.0 :b 1.0})]
+    (is (= #{:b} (:vertices cover)))
+    (is (= 1.0 (:weight cover)))))
 
 (deftest coloring-variants
   (let [gr (g/graph [[:a :b] [:b :c] [:c :d] [:d :a]])]

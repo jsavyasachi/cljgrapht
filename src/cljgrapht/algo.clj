@@ -52,6 +52,7 @@
                                        MinimumCostFlowAlgorithm$MinimumCostFlow
                                        CapacitatedSpanningTreeAlgorithm$CapacitatedSpanningTree
                                        SpanningTreeAlgorithm$SpanningTree
+                                       VertexCoverAlgorithm$VertexCover
                                        VertexColoringAlgorithm
                                        VertexColoringAlgorithm$Coloring)
            (org.jgrapht.alg.matching DenseEdmondsMaximumCardinalityMatching
@@ -63,6 +64,11 @@
                                      SparseEdmondsMaximumCardinalityMatching)
            (org.jgrapht.alg.matching.blossom.v5 KolmogorovWeightedMatching
                                                 ObjectiveSense)
+           (org.jgrapht.alg.vertexcover BarYehudaEvenTwoApproxVCImpl
+                                        ClarksonTwoApproxVCImpl
+                                        EdgeBasedTwoApproxVCImpl
+                                        GreedyVCImpl
+                                        RecursiveExactVCImpl)
            (org.jgrapht.alg.flow DinicMFImpl
                                   EdmondsKarpMFImpl
                                   GusfieldGomoryHuCutTree
@@ -638,6 +644,53 @@
   [^Graph g]
   (ensure-undirected g :greedy-weighted-matching)
   (weighted-matching-result g (.getMatching (GreedyWeightedMatching. g true))))
+
+(defn- vertex-cover-result [^VertexCoverAlgorithm$VertexCover cover]
+  {:vertices (set cover)
+   :weight (.getWeight cover)})
+
+(defn min-vertex-cover
+  "Exact minimum vertex cover, optionally using a vertex-to-weight map."
+  ([^Graph g]
+   (ensure-undirected g :min-vertex-cover)
+   (vertex-cover-result (.getVertexCover (RecursiveExactVCImpl. g))))
+  ([^Graph g weights]
+   (ensure-undirected g :min-vertex-cover)
+   (vertex-cover-result (.getVertexCover (RecursiveExactVCImpl. g weights)))))
+
+(defn greedy-vertex-cover
+  "Greedy vertex cover, optionally using a vertex-to-weight map."
+  ([^Graph g]
+   (ensure-undirected g :greedy-vertex-cover)
+   (vertex-cover-result (.getVertexCover (GreedyVCImpl. g))))
+  ([^Graph g weights]
+   (ensure-undirected g :greedy-vertex-cover)
+   (vertex-cover-result (.getVertexCover (GreedyVCImpl. g weights)))))
+
+(defn clarkson-two-approx-vertex-cover
+  "Clarkson 2-approximation vertex cover, optionally weighted."
+  ([^Graph g]
+   (ensure-undirected g :clarkson-two-approx-vertex-cover)
+   (vertex-cover-result (.getVertexCover (ClarksonTwoApproxVCImpl. g))))
+  ([^Graph g weights]
+   (ensure-undirected g :clarkson-two-approx-vertex-cover)
+   (vertex-cover-result (.getVertexCover (ClarksonTwoApproxVCImpl. g weights)))))
+
+(defn bar-yehuda-even-two-approx-vertex-cover
+  "Bar-Yehuda-Even 2-approximation vertex cover, optionally weighted."
+  ([^Graph g]
+   (ensure-undirected g :bar-yehuda-even-two-approx-vertex-cover)
+   (vertex-cover-result (.getVertexCover (BarYehudaEvenTwoApproxVCImpl. g))))
+  ([^Graph g weights]
+   (ensure-undirected g :bar-yehuda-even-two-approx-vertex-cover)
+   (vertex-cover-result
+    (.getVertexCover (BarYehudaEvenTwoApproxVCImpl. g weights)))))
+
+(defn edge-based-two-approx-vertex-cover
+  "Edge-based 2-approximation vertex cover."
+  [^Graph g]
+  (ensure-undirected g :edge-based-two-approx-vertex-cover)
+  (vertex-cover-result (.getVertexCover (EdgeBasedTwoApproxVCImpl. g))))
 
 (defn maximal-cliques
   "Seq of maximal cliques of undirected graph `g`, each as a vertex set
