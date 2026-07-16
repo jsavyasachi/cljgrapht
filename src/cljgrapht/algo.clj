@@ -43,7 +43,9 @@
                                                 ObjectiveSense)
            (org.jgrapht.alg.flow PushRelabelMFImpl)
            (org.jgrapht.alg.color GreedyColoring
+                                  ColorRefinementAlgorithm
                                   LargestDegreeFirstColoring
+                                  RandomGreedyColoring
                                   SaturationDegreeColoring
                                   SmallestDegreeLastColoring)
            (org.jgrapht.alg.scoring BetweennessCentrality
@@ -485,6 +487,8 @@
       :greedy (GreedyColoring. g)
       :largest-degree-first (LargestDegreeFirstColoring. g)
       :smallest-degree-last (SmallestDegreeLastColoring. g)
+      :random-greedy (RandomGreedyColoring. g)
+      :color-refinement (ColorRefinementAlgorithm. g)
       (throw (unknown-algorithm algorithm))))))
 
 (defn greedy-coloring
@@ -492,6 +496,31 @@
   `{:colors {vertex color-int, ...} :chromatic n}`."
   [^Graph g]
   (coloring g {:algorithm :greedy}))
+
+(defn largest-degree-first-coloring
+  "Greedy coloring in descending degree order."
+  [^Graph g]
+  (coloring g {:algorithm :largest-degree-first}))
+
+(defn smallest-degree-last-coloring
+  "Greedy coloring in smallest-degree-last order."
+  [^Graph g]
+  (coloring g {:algorithm :smallest-degree-last}))
+
+(defn dsatur-coloring
+  "Saturation-degree (DSATUR) vertex coloring."
+  [^Graph g]
+  (coloring g {:algorithm :saturation}))
+
+(defn random-greedy-coloring
+  "Greedy coloring in randomized vertex order."
+  [^Graph g]
+  (coloring g {:algorithm :random-greedy}))
+
+(defn color-refinement
+  "Stable equitable vertex coloring produced by color refinement."
+  [^Graph g]
+  (coloring g {:algorithm :color-refinement}))
 
 (defn clustering-coefficient
   "Map of vertex -> local clustering coefficient."

@@ -264,6 +264,16 @@
       (catch clojure.lang.ExceptionInfo e
         (is (= :unknown-algorithm (:cljgrapht/error (ex-data e))))))))
 
+(deftest coloring-variants
+  (let [gr (g/graph [[:a :b] [:b :c] [:c :d] [:d :a]])]
+    (doseq [result [(a/largest-degree-first-coloring gr)
+                    (a/smallest-degree-last-coloring gr)
+                    (a/dsatur-coloring gr)
+                    (a/random-greedy-coloring gr)
+                    (a/color-refinement gr)]]
+      (is (= #{:a :b :c :d} (set (keys (:colors result)))))
+      (is (pos? (:chromatic result))))))
+
 (deftest centrality
   (let [star (g/graph [[:hub :a] [:hub :b] [:hub :c]])]
     (testing "every vertex scored"
