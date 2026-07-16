@@ -9,6 +9,8 @@
            (org.jgrapht Graph)
            (org.jgrapht.nio DefaultAttribute GraphExporter)
            (org.jgrapht.nio.csv CSVExporter CSVFormat CSVFormat$Parameter CSVImporter)
+           (org.jgrapht.nio.dimacs DIMACSExporter DIMACSExporter$Parameter
+                                    DIMACSFormat DIMACSImporter)
            (org.jgrapht.nio.dot DOTExporter DOTImporter)
            (org.jgrapht.nio.gml GmlExporter GmlExporter$Parameter GmlImporter)
            (org.jgrapht.nio.graphml GraphMLExporter GraphMLImporter)
@@ -281,3 +283,46 @@
      (if symmetrically-listed?
        (as-undirected g weighted?)
        g))))
+
+(defn- dimacs-format [format]
+  (case format
+    :shortest-path DIMACSFormat/SHORTEST_PATH
+    :max-clique DIMACSFormat/MAX_CLIQUE
+    :coloring DIMACSFormat/COLORING
+    (throw (IllegalArgumentException.
+            (str "Unsupported DIMACS format: " (pr-str format))))))
+
+(defn dimacs
+  "DIMACS string for `g`. `:format` is `:shortest-path`, `:max-clique`, or
+  `:coloring`."
+  (^String [^Graph g] (dimacs g {}))
+  (^String [^Graph g {:keys [format] :or {format :shortest-path}}]
+   (let [^DIMACSExporter exporter (DIMACSExporter.)]
+     (.setFormat exporter (dimacs-format format))
+     (when (.. g getType isWeighted)
+       (.setParameter exporter DIMACSExporter$Parameter/EXPORT_EDGE_WEIGHTS true))
+     (export-string exporter g))))
+
+(defn write-dimacs!
+  "Write `(dimacs g opts)` to `path`, returning nil."
+  ([^Graph g path] (write-dimacs! g path {}))
+  ([^Graph g path opts] (spit path (dimacs g opts))))
+
+(defn read-dimacs
+  "Read DIMACS from a string or existing path. Graphs with a `p sp` header are
+  directed; `:directed?` and `:weighted?` can override detection."
+  ([path-or-string] (read-dimacs path-or-string {}))
+  ([path-or-string opts]
+   (let [s (input-string path-or-string)
+         directed? (if (contains? opts :directed?)
+                     (:directed? opts)
+                     (boolean (re-find #"(?m)^p\s+sp\b" s)))
+         weighted? (if (contains? opts :weighted?)
+                     (:weighted? opts)
+                     (boolean (re-find #"(?m)^[ae]\s+\d+\s+\d+\s+[-+]?\d" s)))
+         ^Graph g (graph-for directed? weighted?)
+         ^DIMACSImporter importer (DIMACSImporter.)]
+     (.setVertexFactory importer (reify Function
+                                   (apply [_ id] id)))
+     (.importGraph importer g (StringReader. s))
+     g)))

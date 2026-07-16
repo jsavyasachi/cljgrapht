@@ -100,3 +100,22 @@
       (is (re-find #";" (slurp f)))
       (finally
         (.delete f)))))
+
+(deftest dimacs-formats-and-round-trip
+  (let [weighted (g/weighted-digraph [[:a :b 2.5] [:b :c 4.0]])
+        s (gio/dimacs weighted {:format :shortest-path})
+        imported (gio/read-dimacs s)]
+    (is (re-find #"(?m)^p sp 3 2$" s))
+    (is (= #{[1 2 2.5] [2 3 4.0]} (set (g/edges imported)))))
+  (let [gr (g/graph [[:a :b]])]
+    (is (re-find #"(?m)^p edge" (gio/dimacs gr {:format :max-clique})))
+    (is (re-find #"(?m)^p col" (gio/dimacs gr {:format :coloring})))))
+
+(deftest dimacs-write
+  (let [f (java.io.File/createTempFile "cljgrapht" ".col")]
+    (try
+      (gio/write-dimacs! (g/graph [[:a :b]]) (.getPath f)
+                         {:format :coloring})
+      (is (re-find #"(?m)^p col" (slurp f)))
+      (finally
+        (.delete f)))))
