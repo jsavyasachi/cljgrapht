@@ -32,6 +32,13 @@
       (finally
         (.delete f)))))
 
+(deftest dot-weight-and-attribute-round-trip
+  (let [gr (g/weighted-digraph [[:a :b 2.5]])
+        s (gio/dot gr {:attributes {:a {:color "red"}}})
+        imported (gio/read-dot s)]
+    (is (re-find #"color=\"red\"" s))
+    (is (= #{["_a" "_b" 2.5]} (set (g/edges imported))))))
+
 (deftest graphml-export-and-write
   (let [gr (g/graph [[:a :b]])
         s (gio/graphml gr)

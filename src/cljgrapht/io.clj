@@ -5,7 +5,7 @@
             [clojure.string :as str])
   (:import (java.io File StringReader StringWriter)
            (java.util Collections)
-           (java.util.function Function)
+           (java.util.function BiConsumer Function)
            (org.jgrapht Graph)
            (org.jgrapht.nio DefaultAttribute GraphExporter)
            (org.jgrapht.nio.csv CSVExporter CSVFormat CSVFormat$Parameter CSVImporter
@@ -72,6 +72,13 @@
             (map (fn [[k value]] [(name k) (attribute value)]))
             (get attributes v {})))))
 
+(defn- labeled-attribute-provider ^Function [attributes]
+  (let [custom (attribute-provider attributes)]
+    (reify Function
+      (apply [_ v]
+        (assoc (.apply custom v) "label"
+               (DefaultAttribute/createAttribute (pr-str v)))))))
+
 (defn- weight-provider ^Function [^Graph g]
   (reify Function
     (apply [_ e]
@@ -105,25 +112,40 @@
 (defn dot
   "DOT string for `g`. Vertex ids are sanitized `pr-str` values; labels keep the
   original `pr-str` for display."
-  [^Graph g]
-  (let [^DOTExporter exporter (DOTExporter. (id-provider))]
-    (.setVertexAttributeProvider exporter (label-provider))
-    (export-string exporter g)))
+  (^String [^Graph g] (dot g {}))
+  (^String [^Graph g {:keys [attributes]}]
+   (let [^DOTExporter exporter (DOTExporter. (id-provider))]
+     (.setVertexAttributeProvider exporter
+                                  (if attributes
+                                    (labeled-attribute-provider attributes)
+                                    (label-provider)))
+     (when (.. g getType isWeighted)
+       (.setEdgeAttributeProvider exporter (weight-provider g)))
+     (export-string exporter g))))
 
 (defn write-dot!
   "Write `(dot g)` to `path`, returning nil."
-  [^Graph g path]
-  (spit path (dot g)))
+  ([^Graph g path] (write-dot! g path {}))
+  ([^Graph g path opts] (spit path (dot g opts))))
 
 (defn read-dot
   "Read a DOT string or existing path. Imported vertices are DOT id strings, not
   EDN parsed Clojure values."
   [path-or-string]
   (let [s (input-string path-or-string)
-        ^Graph g (if (directed-dot? s) (core/digraph) (core/graph))
+        weighted? (boolean (re-find #"(?i)\bweight\s*=" s))
+        ^Graph g (graph-for (directed-dot? s) weighted?)
         ^DOTImporter importer (DOTImporter.)]
     (.setVertexFactory importer (reify Function
                                   (apply [_ id] id)))
+    (when weighted?
+      (.addEdgeAttributeConsumer
+       importer
+       (reify BiConsumer
+         (accept [_ edge-and-name attr]
+           (when (= "weight" (.getSecond edge-and-name))
+             (.setEdgeWeight g (.getFirst edge-and-name)
+                             (Double/parseDouble (.getValue attr))))))))
     (.importGraph importer g (StringReader. s))
     g))
 
