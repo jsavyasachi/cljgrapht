@@ -12,6 +12,9 @@
            (org.jgrapht.nio.dimacs DIMACSExporter DIMACSExporter$Parameter
                                     DIMACSFormat DIMACSImporter)
            (org.jgrapht.nio.dot DOTExporter DOTImporter)
+           (org.jgrapht.nio.gexf GEXFAttributeType GEXFExporter
+                                  GEXFExporter$AttributeCategory
+                                  GEXFExporter$Parameter SimpleGEXFImporter)
            (org.jgrapht.nio.gml GmlExporter GmlExporter$Parameter GmlImporter)
            (org.jgrapht.nio.graph6 Graph6Sparse6Exporter
                                    Graph6Sparse6Exporter$Format
@@ -387,3 +390,47 @@
   "Write `(matrix g opts)` to `path`, returning nil."
   ([^Graph g path] (write-matrix! g path {}))
   ([^Graph g path opts] (spit path (matrix g opts))))
+
+(defn- gexf-attribute-type [v]
+  (cond
+    (instance? Boolean v) GEXFAttributeType/BOOLEAN
+    (instance? Integer v) GEXFAttributeType/INTEGER
+    (instance? Long v) GEXFAttributeType/LONG
+    (instance? Float v) GEXFAttributeType/FLOAT
+    (instance? Double v) GEXFAttributeType/DOUBLE
+    :else GEXFAttributeType/STRING))
+
+(defn gexf
+  "GEXF string for `g`. Set `:attributes` to a vertex-to-attribute map."
+  (^String [^Graph g] (gexf g {}))
+  (^String [^Graph g {:keys [attributes]}]
+   (let [^GEXFExporter exporter (GEXFExporter. (id-provider) (id-provider))]
+     (when (.. g getType isWeighted)
+       (.setParameter exporter GEXFExporter$Parameter/EXPORT_EDGE_WEIGHTS true))
+     (when attributes
+       (doseq [[k v] (->> attributes vals (mapcat seq) (into {}))]
+         (.registerAttribute exporter (name k)
+                             GEXFExporter$AttributeCategory/NODE
+                             (gexf-attribute-type v)))
+       (.setVertexAttributeProvider exporter (attribute-provider attributes)))
+     (export-string exporter g))))
+
+(defn write-gexf!
+  "Write `(gexf g opts)` to `path`, returning nil."
+  ([^Graph g path] (write-gexf! g path {}))
+  ([^Graph g path opts] (spit path (gexf g opts))))
+
+(defn read-gexf
+  "Read GEXF from a string or existing path. Imported vertices are GEXF id
+  strings, not EDN parsed Clojure values."
+  [path-or-string]
+  (let [s (input-string path-or-string)
+        directed? (boolean (re-find #"defaultedgetype=\"directed\"" s))
+        weighted? (boolean (re-find #"<edge\b[^>]*\bweight=" s))
+        ^Graph g (graph-for directed? weighted?)
+        ^SimpleGEXFImporter importer (SimpleGEXFImporter.)]
+    (.setSchemaValidation importer false)
+    (.setVertexFactory importer (reify Function
+                                  (apply [_ id] id)))
+    (.importGraph importer g (StringReader. s))
+    g))

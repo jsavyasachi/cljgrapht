@@ -151,3 +151,18 @@
       (is (re-find #"_a" (slurp f)))
       (finally
         (.delete f)))))
+
+(deftest gexf-export-write-and-import
+  (let [gr (g/weighted-digraph [[:a :b 2.5] [:b :c 4.0]])
+        s (gio/gexf gr {:attributes {:a {:color "red"}}})
+        imported (gio/read-gexf s)
+        f (java.io.File/createTempFile "cljgrapht" ".gexf")]
+    (try
+      (is (re-find #"<gexf" s))
+      (is (re-find #"color" s))
+      (is (= #{["_a" "_b" 2.5] ["_b" "_c" 4.0]}
+             (set (g/edges imported))))
+      (gio/write-gexf! gr (.getPath f))
+      (is (re-find #"<edges>" (slurp f)))
+      (finally
+        (.delete f)))))
