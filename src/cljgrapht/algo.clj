@@ -69,6 +69,14 @@
                                         EdgeBasedTwoApproxVCImpl
                                         GreedyVCImpl
                                         RecursiveExactVCImpl)
+           (org.jgrapht.alg.tour ChristofidesThreeHalvesApproxMetricTSP
+                                 GreedyHeuristicTSP
+                                 HeldKarpTSP
+                                 NearestInsertionHeuristicTSP
+                                 NearestNeighborHeuristicTSP
+                                 PalmerHamiltonianCycle
+                                 RandomTourTSP
+                                 TwoOptHeuristicTSP)
            (org.jgrapht.alg.flow DinicMFImpl
                                   EdmondsKarpMFImpl
                                   GusfieldGomoryHuCutTree
@@ -691,6 +699,50 @@
   [^Graph g]
   (ensure-undirected g :edge-based-two-approx-vertex-cover)
   (vertex-cover-result (.getVertexCover (EdgeBasedTwoApproxVCImpl. g))))
+
+(defn- tour-result [^GraphPath tour]
+  (when tour
+    {:tour (vec (.getVertexList tour))
+     :weight (.getWeight tour)}))
+
+(defn- simple-copy ^Graph [^Graph g]
+  (let [weighted? (.. g getType isWeighted)
+        ^Graph copy (-> (GraphTypeBuilder/undirected)
+                        (.allowingMultipleEdges false)
+                        (.allowingSelfLoops false)
+                        (.weighted weighted?)
+                        (.edgeClass (if weighted? DefaultWeightedEdge DefaultEdge))
+                        (.buildGraph))]
+    (doseq [v (.vertexSet g)]
+      (.addVertex copy v))
+    (doseq [e (.edgeSet g)]
+      (let [copied (.addEdge copy (.getEdgeSource g e) (.getEdgeTarget g e))]
+        (when weighted?
+          (.setEdgeWeight copy copied (.getEdgeWeight g e)))))
+    copy))
+
+(defn tsp-tour
+  "Hamiltonian tour as `{:tour [v ... v] :weight w}`. Methods are
+  `:nearest-neighbor` (default), `:held-karp`, `:christofides`, `:greedy`,
+  `:nearest-insertion`, `:random`, `:two-opt`, and `:palmer`."
+  ([^Graph g]
+   (tsp-tour g {}))
+  ([^Graph g {:keys [method] :or {method :nearest-neighbor}}]
+   (ensure-undirected g :tsp-tour)
+   (let [algorithm (case method
+                     :held-karp (HeldKarpTSP.)
+                     :nearest-neighbor (NearestNeighborHeuristicTSP.)
+                     :christofides (ChristofidesThreeHalvesApproxMetricTSP.)
+                     :greedy (GreedyHeuristicTSP.)
+                     :nearest-insertion (NearestInsertionHeuristicTSP.)
+                     :random (RandomTourTSP.)
+                     :two-opt (TwoOptHeuristicTSP.)
+                     :palmer (PalmerHamiltonianCycle.)
+                     (throw (ex-info "Unknown TSP method"
+                                     {:cljgrapht/error :unknown-algorithm
+                                      :cljgrapht/algorithm method})))
+         tour-graph (if (= method :palmer) (simple-copy g) g)]
+     (tour-result (.getTour algorithm tour-graph)))))
 
 (defn maximal-cliques
   "Seq of maximal cliques of undirected graph `g`, each as a vertex set

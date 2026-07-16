@@ -381,6 +381,18 @@
     (is (= #{:b} (:vertices cover)))
     (is (= 1.0 (:weight cover)))))
 
+(deftest tsp-algorithms
+  (let [k4 (g/weighted-graph [[:a :b 1.0] [:b :c 1.0] [:c :d 1.0]
+                              [:d :a 1.0] [:a :c 2.0] [:b :d 2.0]])]
+    (is (= 4.0 (:weight (a/tsp-tour k4 {:method :held-karp}))))
+    (doseq [method [:nearest-neighbor :christofides :greedy :nearest-insertion
+                    :random :two-opt :palmer]]
+      (let [{:keys [tour weight]} (a/tsp-tour k4 {:method method})]
+        (is (= #{:a :b :c :d} (set tour)))
+        (is (= (first tour) (last tour)))
+        (is (number? weight))))
+    (is (map? (a/tsp-tour k4)))))
+
 (deftest coloring-variants
   (let [gr (g/graph [[:a :b] [:b :c] [:c :d] [:d :a]])]
     (doseq [result [(a/largest-degree-first-coloring gr)
