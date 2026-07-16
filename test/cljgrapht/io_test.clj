@@ -67,3 +67,18 @@
       (is (= s (slurp f)))
       (finally
         (.delete f)))))
+
+(deftest json-export-write-and-import
+  (let [gr (g/weighted-graph [[:a :b 2.5] [:b :c 4.0]])
+        s (gio/json-graph gr {:attributes {:a {:color "red"}}})
+        imported (gio/read-json s)
+        f (java.io.File/createTempFile "cljgrapht" ".json")]
+    (try
+      (is (re-find #"\"nodes\"" s))
+      (is (re-find #"\"color\":\"red\"" s))
+      (is (= 3 (count (g/vertices imported))))
+      (is (= #{2.5 4.0} (set (map #(nth % 2) (g/edges imported)))))
+      (gio/write-json! gr (.getPath f))
+      (is (re-find #"\"edges\"" (slurp f)))
+      (finally
+        (.delete f)))))

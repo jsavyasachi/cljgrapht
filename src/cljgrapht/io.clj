@@ -10,7 +10,8 @@
            (org.jgrapht.nio DefaultAttribute GraphExporter)
            (org.jgrapht.nio.dot DOTExporter DOTImporter)
            (org.jgrapht.nio.gml GmlExporter GmlExporter$Parameter GmlImporter)
-           (org.jgrapht.nio.graphml GraphMLExporter GraphMLImporter)))
+           (org.jgrapht.nio.graphml GraphMLExporter GraphMLImporter)
+           (org.jgrapht.nio.json JSONExporter JSONImporter)))
 
 (defn- valid-id? [^String s]
   (boolean (re-matches #"[A-Za-z_][A-Za-z0-9_]*|-?(\.[0-9]+|[0-9]+(\.[0-9]*)?)" s)))
@@ -58,6 +59,12 @@
       (into {}
             (map (fn [[k value]] [(name k) (attribute value)]))
             (get attributes v {})))))
+
+(defn- weight-provider ^Function [^Graph g]
+  (reify Function
+    (apply [_ e]
+      {"weight" (DefaultAttribute/createAttribute
+                  (double (.getEdgeWeight g e)))})))
 
 (defn- export-string [^GraphExporter exporter ^Graph g]
   (let [writer (StringWriter.)]
@@ -164,3 +171,33 @@
                                   (apply [_ id] id)))
     (.importGraph importer g (StringReader. s))
     g))
+
+(defn json-graph
+  "JGraphT JSON string for `g`. Set `:attributes` to a vertex-to-attribute map."
+  (^String [^Graph g] (json-graph g {}))
+  (^String [^Graph g {:keys [attributes]}]
+   (let [^JSONExporter exporter (JSONExporter. (id-provider))]
+     (when attributes
+       (.setVertexAttributeProvider exporter (attribute-provider attributes)))
+     (when (.. g getType isWeighted)
+       (.setEdgeAttributeProvider exporter (weight-provider g)))
+     (export-string exporter g))))
+
+(defn write-json!
+  "Write `(json-graph g opts)` to `path`, returning nil."
+  ([^Graph g path] (write-json! g path {}))
+  ([^Graph g path opts] (spit path (json-graph g opts))))
+
+(defn read-json
+  "Read a JGraphT JSON string or existing path. Use `:directed? true` when the
+  source edge list represents a directed graph."
+  ([path-or-string] (read-json path-or-string {}))
+  ([path-or-string {:keys [directed?]}]
+   (let [s (input-string path-or-string)
+         weighted? (boolean (re-find #"\"weight\"\s*:" s))
+         ^Graph g (graph-for directed? weighted?)
+         ^JSONImporter importer (JSONImporter.)]
+     (.setVertexFactory importer (reify Function
+                                   (apply [_ id] id)))
+     (.importGraph importer g (StringReader. s))
+     g)))
