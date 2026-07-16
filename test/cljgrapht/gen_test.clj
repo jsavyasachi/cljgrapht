@@ -222,3 +222,30 @@
         (let [gr (gen/named-graph name)]
           (is (= expected [(some-> gr g/vertices count)
                            (some-> gr g/edges count)])))))))
+
+(deftest directed-generator-options
+  (doseq [[gr vertices edges]
+          [[(gen/complete-graph 4 {:directed? true}) 4 12]
+           [(gen/linear-graph 4 {:directed? true}) 4 3]
+           [(gen/ring-graph 4 {:directed? true}) 4 4]
+           [(gen/star-graph 5 {:directed? true}) 5 4]
+           [(gen/grid-graph 2 3 {:directed? true}) 6 14]
+           [(gen/complete-bipartite-graph 2 3 {:directed? true}) 5 6]
+           [(gen/wheel-graph 6 {:directed? true :inward-spokes? false}) 6 10]
+           [(gen/hypercube-graph 3 {:directed? true}) 8 12]
+           [(gen/empty-graph 4 {:directed? true}) 4 0]
+           [(gen/generalized-petersen-graph 5 2 {:directed? true}) 10 15]
+           [(gen/windmill-graph :windmill 2 4 {:directed? true}) 7 12]]]
+    (is (true? (some-> gr .getType .isDirected)))
+    (is (= vertices (some-> gr g/vertices count)))
+    (is (= edges (some-> gr g/edges count))))
+  (testing "directed Barabasi-Albert graph"
+    (let [gr (gen/barabasi-albert-graph 4 2 20 {:seed 42 :directed? true})]
+      (is (true? (.. gr getType isDirected)))
+      (is (= 20 (count (g/vertices gr))))))
+  (testing "Watts-Strogatz shortcut mode"
+    (let [rewired (gen/watts-strogatz-graph 20 4 1.0 {:seed 42})
+          shortcuts (gen/watts-strogatz-graph
+                     20 4 1.0 {:seed 42 :add-instead-of-rewire? true})]
+      (is (= 40 (count (g/edges rewired))))
+      (is (> (count (g/edges shortcuts)) (count (g/edges rewired)))))))

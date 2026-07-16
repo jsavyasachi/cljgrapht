@@ -81,33 +81,47 @@
 
 (defn complete-graph
   "A new undirected complete graph with integer vertices 0..n-1."
-  ^Graph [n]
-  (generate (CompleteGraphGenerator. (int n))))
+  (^Graph [n]
+   (generate (CompleteGraphGenerator. (int n))))
+  (^Graph [n {:keys [directed?]}]
+   (generate (CompleteGraphGenerator. (int n)) {:directed? directed?})))
 
 (defn ring-graph
   "A new undirected ring graph with integer vertices 0..n-1."
-  ^Graph [n]
-  (generate (RingGraphGenerator. (int n))))
+  (^Graph [n]
+   (generate (RingGraphGenerator. (int n))))
+  (^Graph [n {:keys [directed?]}]
+   (generate (RingGraphGenerator. (int n)) {:directed? directed?})))
 
 (defn star-graph
   "A new undirected star graph with integer vertices 0..n-1."
-  ^Graph [n]
-  (generate (StarGraphGenerator. (int n))))
+  (^Graph [n]
+   (generate (StarGraphGenerator. (int n))))
+  (^Graph [n {:keys [directed?]}]
+   (generate (StarGraphGenerator. (int n)) {:directed? directed?})))
 
 (defn grid-graph
   "A new undirected rows-by-cols grid graph with integer vertices 0..n-1."
-  ^Graph [rows cols]
-  (generate (GridGraphGenerator. (int rows) (int cols))))
+  (^Graph [rows cols]
+   (generate (GridGraphGenerator. (int rows) (int cols))))
+  (^Graph [rows cols {:keys [directed?]}]
+   (generate (GridGraphGenerator. (int rows) (int cols))
+             {:directed? directed?})))
 
 (defn complete-bipartite-graph
   "A new undirected complete bipartite graph with partition sizes n1 and n2."
-  ^Graph [n1 n2]
-  (generate (CompleteBipartiteGraphGenerator. (int n1) (int n2))))
+  (^Graph [n1 n2]
+   (generate (CompleteBipartiteGraphGenerator. (int n1) (int n2))))
+  (^Graph [n1 n2 {:keys [directed?]}]
+   (generate (CompleteBipartiteGraphGenerator. (int n1) (int n2))
+             {:directed? directed?})))
 
 (defn linear-graph
   "A new undirected path graph with integer vertices 0..n-1."
-  ^Graph [n]
-  (generate (LinearGraphGenerator. (int n))))
+  (^Graph [n]
+   (generate (LinearGraphGenerator. (int n))))
+  (^Graph [n {:keys [directed?]}]
+   (generate (LinearGraphGenerator. (int n)) {:directed? directed?})))
 
 (defn wheel-graph
   "A new undirected wheel graph with n total vertices."
@@ -120,28 +134,38 @@
 
 (defn hypercube-graph
   "A new undirected hypercube graph of dimension n."
-  ^Graph [n]
-  (generate (HyperCubeGraphGenerator. (int n))))
+  (^Graph [n]
+   (generate (HyperCubeGraphGenerator. (int n))))
+  (^Graph [n {:keys [directed?]}]
+   (generate (HyperCubeGraphGenerator. (int n)) {:directed? directed?})))
 
 (defn empty-graph
   "A new undirected graph with n vertices and no edges."
-  ^Graph [n]
-  (generate (EmptyGraphGenerator. (int n))))
+  (^Graph [n]
+   (generate (EmptyGraphGenerator. (int n))))
+  (^Graph [n {:keys [directed?]}]
+   (generate (EmptyGraphGenerator. (int n)) {:directed? directed?})))
 
 (defn generalized-petersen-graph
   "A new undirected generalized Petersen graph GP(n,k)."
-  ^Graph [n k]
-  (generate (GeneralizedPetersenGraphGenerator. (int n) (int k))))
+  (^Graph [n k]
+   (generate (GeneralizedPetersenGraphGenerator. (int n) (int k))))
+  (^Graph [n k {:keys [directed?]}]
+   (generate (GeneralizedPetersenGraphGenerator. (int n) (int k))
+             {:directed? directed?})))
 
 (defn windmill-graph
   "A new windmill graph with m copies of K_n or C_n sharing one vertex."
-  ^Graph [mode m n]
-  (let [generator-mode (case mode
-                         :windmill WindmillGraphsGenerator$Mode/WINDMILL
-                         :dutch-windmill WindmillGraphsGenerator$Mode/DUTCHWINDMILL
-                         (throw (IllegalArgumentException.
-                                 (str "Unknown windmill mode: " mode))))]
-    (generate (WindmillGraphsGenerator. generator-mode (int m) (int n)))))
+  (^Graph [mode m n]
+   (windmill-graph mode m n {}))
+  (^Graph [mode m n {:keys [directed?]}]
+   (let [generator-mode (case mode
+                          :windmill WindmillGraphsGenerator$Mode/WINDMILL
+                          :dutch-windmill WindmillGraphsGenerator$Mode/DUTCHWINDMILL
+                          (throw (IllegalArgumentException.
+                                  (str "Unknown windmill mode: " mode))))]
+     (generate (WindmillGraphsGenerator. generator-mode (int m) (int n))
+               {:directed? directed?}))))
 
 (defn complement-graph
   "A new complement of graph gr, optionally including missing self-loops."
@@ -205,10 +229,13 @@
   "A new undirected Barabasi-Albert graph with initial `m0`, `m`, and total `n`."
   (^Graph [m0 m n]
    (generate (BarabasiAlbertGraphGenerator. (int m0) (int m) (int n))))
-  (^Graph [m0 m n {:keys [seed]}]
-   (if (some? seed)
-     (generate (BarabasiAlbertGraphGenerator. (int m0) (int m) (int n) (long seed)))
-     (barabasi-albert-graph m0 m n))))
+  (^Graph [m0 m n {:keys [seed directed?]}]
+   (let [generator (if (some? seed)
+                     (BarabasiAlbertGraphGenerator.
+                      (int m0) (int m) (int n) (long seed))
+                     (BarabasiAlbertGraphGenerator.
+                      (int m0) (int m) (int n)))]
+     (generate generator {:directed? directed?}))))
 
 (defn barabasi-albert-forest
   "A new Barabasi-Albert forest with t trees and n total vertices."
@@ -392,7 +419,9 @@
   "A new undirected Watts-Strogatz graph with n vertices, degree k, and rewiring p."
   (^Graph [n k p]
    (generate (WattsStrogatzGraphGenerator. (int n) (int k) (double p))))
-  (^Graph [n k p {:keys [seed]}]
-   (if (some? seed)
-     (generate (WattsStrogatzGraphGenerator. (int n) (int k) (double p) (long seed)))
-     (watts-strogatz-graph n k p))))
+  (^Graph [n k p {:keys [seed directed? add-instead-of-rewire?]}]
+   (let [rng (if (some? seed) (Random. (long seed)) (Random.))
+         generator (WattsStrogatzGraphGenerator.
+                    (int n) (int k) (double p)
+                    (boolean add-instead-of-rewire?) rng)]
+     (generate generator {:directed? directed?}))))
