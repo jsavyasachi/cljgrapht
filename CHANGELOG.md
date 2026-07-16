@@ -3,6 +3,11 @@
 All notable changes to this project are documented here. This change log follows
 the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [0.4.2] - 2026-07-16
+
+### Changed
+- Loom is now an optional dependency, moved out of the runtime `:deps` (consumers using the Loom interop must depend on loom themselves, as the README already documents).
+
 ## [0.4.1] - 2026-07-12
 
 ### Changed
