@@ -81,6 +81,26 @@
         (catch clojure.lang.ExceptionInfo e
           (is (= :not-directed (:cljgrapht/error (ex-data e)))))))))
 
+(deftest shortest-path-variants-and-transitive-operations
+  (let [gr (g/weighted-digraph [[:a :b 1.0] [:b :d 1.0] [:a :c 1.0]
+                                [:c :d 2.0] [:b :c 1.0]])]
+    (is (= {:path [:a :b :d] :weight 2.0}
+           (a/bidirectional-shortest-path gr :a :d)))
+    (is (= {:path [:a :b :d] :weight 2.0}
+           (a/delta-stepping-shortest-path gr :a :d)))
+    (is (= {:path [:a :b :d] :weight 2.0}
+           (a/contraction-hierarchy-shortest-path gr :a :d)))
+    (is (= (a/k-shortest-paths gr :a :d 3)
+           (a/yen-k-shortest-paths gr :a :d 3)))
+    (is (= #{[:a :b :d] [:a :c :d]}
+           (set (map :path (a/disjoint-shortest-paths gr :a :d 2)))))
+    (is (= #{[:a :b :d] [:a :c :d]}
+           (set (map :path (a/all-directed-paths gr :a :d {:max-length 2}))))))
+  (let [dag (g/digraph [[:a :b] [:b :c] [:a :c]])]
+    (is (= #{[:a :b] [:b :c]} (a/transitive-reduction dag)))
+    (is (= #{[:a :b] [:b :c] [:a :c]}
+           (a/transitive-closure (g/digraph [[:a :b] [:b :c]]))))))
+
 (deftest clique-and-scoring-algorithms
   (let [gr (g/graph [[:a :b] [:a :c] [:b :c] [:c :d]])]
     (testing "maximal cliques"

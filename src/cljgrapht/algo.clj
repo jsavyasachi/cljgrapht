@@ -8,17 +8,23 @@
   directed graphs."
   (:require [cljgrapht.core :as core])
   (:import (java.util Collection HashSet)
+           (java.util.concurrent Executors ThreadPoolExecutor)
            (java.util.function Supplier)
            (org.jgrapht Graph GraphPath)
-           (org.jgrapht.graph DefaultEdge DefaultWeightedEdge)
+           (org.jgrapht.graph DefaultEdge DefaultWeightedEdge SimpleDirectedGraph)
            (org.jgrapht.graph.builder GraphTypeBuilder)
+           (org.jgrapht.alg TransitiveClosure TransitiveReduction)
            (org.jgrapht.alg.shortestpath AStarShortestPath
                                          AllDirectedPaths
                                          BellmanFordShortestPath
+                                         BidirectionalDijkstraShortestPath
+                                         ContractionHierarchyBidirectionalDijkstra
+                                         DeltaSteppingShortestPath
                                          DijkstraShortestPath
                                          FloydWarshallShortestPaths
                                          GraphMeasurer
                                          JohnsonShortestPaths
+                                         SuurballeKDisjointShortestPaths
                                          YenKShortestPath)
            (org.jgrapht.alg.interfaces AStarAdmissibleHeuristic
                                        PartitioningAlgorithm$Partitioning
@@ -264,6 +270,74 @@
   [^Graph g src dst]
   (ensure-directed g :all-simple-paths)
   (mapv path-result (.getAllPaths (AllDirectedPaths. g) src dst true nil)))
+
+(defn bidirectional-shortest-path
+  "Cheapest path from `src` to `dst` using bidirectional Dijkstra."
+  [^Graph g src dst]
+  (path-result (.getPath (BidirectionalDijkstraShortestPath. g) src dst)))
+
+(defn delta-stepping-shortest-path
+  "Cheapest path from `src` to `dst` using parallel delta-stepping."
+  [^Graph g src dst]
+  (let [^ThreadPoolExecutor executor (Executors/newFixedThreadPool 1)]
+    (try
+      (path-result (.getPath (DeltaSteppingShortestPath. g executor) src dst))
+      (finally
+        (.shutdownNow executor)))))
+
+(defn contraction-hierarchy-shortest-path
+  "Cheapest path from `src` to `dst` using a contraction hierarchy."
+  [^Graph g src dst]
+  (let [^ThreadPoolExecutor executor (Executors/newFixedThreadPool 1)]
+    (try
+      (path-result
+       (.getPath (ContractionHierarchyBidirectionalDijkstra. g executor) src dst))
+      (finally
+        (.shutdownNow executor)))))
+
+(defn yen-k-shortest-paths
+  "The `k` shortest loopless paths from `src` to `dst` using Yen's algorithm."
+  [^Graph g src dst k]
+  (mapv path-result (.getPaths (YenKShortestPath. g) src dst (int k))))
+
+(defn disjoint-shortest-paths
+  "Up to `k` edge-disjoint shortest paths from `src` to `dst` using Suurballe."
+  [^Graph g src dst k]
+  (ensure-directed g :disjoint-shortest-paths)
+  (mapv path-result
+        (.getPaths (SuurballeKDisjointShortestPaths. g) src dst (int k))))
+
+(defn all-directed-paths
+  "All directed paths from `src` to `dst`. Options are `:simple?` (default true)
+  and `:max-length`, the maximum number of edges."
+  ([^Graph g src dst]
+   (all-directed-paths g src dst {}))
+  ([^Graph g src dst {:keys [simple? max-length]
+                      :or {simple? true}}]
+   (ensure-directed g :all-directed-paths)
+   (mapv path-result
+         (.getAllPaths (AllDirectedPaths. g) src dst (boolean simple?)
+                       (when (some? max-length) (Integer/valueOf (int max-length)))))))
+
+(defn transitive-reduction
+  "Edges of the transitive reduction of directed acyclic graph `g`."
+  [^Graph g]
+  (ensure-directed g :transitive-reduction)
+  (let [copy (graph-with-suppliers g)]
+    (.reduce TransitiveReduction/INSTANCE copy)
+    (set (map #(edge-pair copy %) (.edgeSet copy)))))
+
+(defn transitive-closure
+  "Edges of the transitive closure of directed graph `g`."
+  [^Graph g]
+  (ensure-directed g :transitive-closure)
+  (let [^SimpleDirectedGraph copy (SimpleDirectedGraph. DefaultEdge)]
+    (doseq [v (.vertexSet g)]
+      (.addVertex copy v))
+    (doseq [e (.edgeSet g)]
+      (.addEdge copy (.getEdgeSource g e) (.getEdgeTarget g e)))
+    (.closeSimpleDirectedGraph TransitiveClosure/INSTANCE copy)
+    (set (map #(edge-pair copy %) (.edgeSet copy)))))
 
 (defn connected-components
   "Seq of vertex sets, one per connected component (undirected; for a directed
