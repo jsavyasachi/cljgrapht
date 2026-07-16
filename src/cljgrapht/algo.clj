@@ -54,7 +54,12 @@
                                        VertexColoringAlgorithm
                                        VertexColoringAlgorithm$Coloring)
            (org.jgrapht.alg.matching DenseEdmondsMaximumCardinalityMatching
-                                     HopcroftKarpMaximumCardinalityBipartiteMatching)
+                                     GreedyMaximumCardinalityMatching
+                                     GreedyWeightedMatching
+                                     HopcroftKarpMaximumCardinalityBipartiteMatching
+                                     KuhnMunkresMinimalWeightBipartitePerfectMatching
+                                     PathGrowingWeightedMatching
+                                     SparseEdmondsMaximumCardinalityMatching)
            (org.jgrapht.alg.matching.blossom.v5 KolmogorovWeightedMatching
                                                 ObjectiveSense)
            (org.jgrapht.alg.flow PushRelabelMFImpl)
@@ -576,6 +581,57 @@
                                                (HashSet. ^Collection part1)
                                                (HashSet. ^Collection part2)))]
     (matching-result g matching)))
+
+(defn dense-edmonds-maximum-matching
+  "Maximum-cardinality matching using the dense Edmonds implementation."
+  [^Graph g]
+  (ensure-undirected g :dense-edmonds-maximum-matching)
+  (matching-result g (.getMatching (DenseEdmondsMaximumCardinalityMatching. g))))
+
+(defn sparse-edmonds-maximum-matching
+  "Maximum-cardinality matching using the sparse Edmonds implementation."
+  [^Graph g]
+  (ensure-undirected g :sparse-edmonds-maximum-matching)
+  (matching-result g (.getMatching (SparseEdmondsMaximumCardinalityMatching. g))))
+
+(defn hopcroft-karp-matching
+  "Maximum bipartite matching using Hopcroft-Karp."
+  [^Graph g part1 part2]
+  (ensure-undirected g :hopcroft-karp-matching)
+  (matching-result
+   g (.getMatching (HopcroftKarpMaximumCardinalityBipartiteMatching.
+                    g (HashSet. ^Collection part1) (HashSet. ^Collection part2)))))
+
+(defn assignment
+  "Minimum-weight perfect bipartite matching between `part1` and `part2`."
+  [^Graph g part1 part2]
+  (ensure-undirected g :assignment)
+  (weighted-matching-result
+   g (.getMatching (KuhnMunkresMinimalWeightBipartitePerfectMatching.
+                    g (HashSet. ^Collection part1) (HashSet. ^Collection part2)))))
+
+(defn minimal-weight-perfect-matching
+  "Alias for `assignment`."
+  [^Graph g part1 part2]
+  (assignment g part1 part2))
+
+(defn path-growing-weighted-matching
+  "Approximate maximum-weight matching using path growing."
+  [^Graph g]
+  (ensure-undirected g :path-growing-weighted-matching)
+  (weighted-matching-result g (.getMatching (PathGrowingWeightedMatching. g))))
+
+(defn greedy-maximum-matching
+  "Greedy maximal cardinality matching."
+  [^Graph g]
+  (ensure-undirected g :greedy-maximum-matching)
+  (matching-result g (.getMatching (GreedyMaximumCardinalityMatching. g true))))
+
+(defn greedy-weighted-matching
+  "Greedy approximate maximum-weight matching."
+  [^Graph g]
+  (ensure-undirected g :greedy-weighted-matching)
+  (weighted-matching-result g (.getMatching (GreedyWeightedMatching. g true))))
 
 (defn maximal-cliques
   "Seq of maximal cliques of undirected graph `g`, each as a vertex set

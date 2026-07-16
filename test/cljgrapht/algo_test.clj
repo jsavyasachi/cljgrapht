@@ -279,7 +279,22 @@
       (a/maximum-matching (g/digraph [[:a :b]]))
       (is false "expected ex-info")
       (catch clojure.lang.ExceptionInfo e
-        (is (= :not-undirected (:cljgrapht/error (ex-data e))))))))
+          (is (= :not-undirected (:cljgrapht/error (ex-data e))))))))
+
+(deftest matching-algorithm-variants
+  (let [path (g/graph [[:a :b] [:b :c] [:c :d]])]
+    (is (= 2 (:size (a/dense-edmonds-maximum-matching path))))
+    (is (= 2 (:size (a/sparse-edmonds-maximum-matching path))))
+    (is (pos? (:size (a/greedy-maximum-matching path)))))
+  (let [gr (g/graph [[:a :x] [:a :y] [:b :y]])]
+    (is (= 2 (:size (a/hopcroft-karp-matching gr #{:a :b} #{:x :y})))))
+  (let [k22 (g/weighted-graph [[:a :x 1.0] [:a :y 4.0]
+                                [:b :x 3.0] [:b :y 1.0]])]
+    (is (= 2.0 (:weight (a/assignment k22 #{:a :b} #{:x :y}))))
+    (is (= 2.0 (:weight
+                (a/minimal-weight-perfect-matching k22 #{:a :b} #{:x :y}))))
+    (is (number? (:weight (a/path-growing-weighted-matching k22))))
+    (is (number? (:weight (a/greedy-weighted-matching k22))))))
 
 (deftest flow-and-cuts
   (let [gr (g/weighted-digraph [[:s :a 3.0] [:s :b 2.0] [:a :t 2.0]
