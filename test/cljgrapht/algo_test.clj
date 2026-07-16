@@ -192,6 +192,23 @@
     (is (= 3.0 (:weight mst)))
     (is (= #{#{:a :b} #{:b :c}} (set (map set (:edges mst)))))))
 
+(deftest spanning-tree-variants-and-spanner
+  (let [gr (g/weighted-graph [[:a :b 1.0] [:b :c 2.0] [:a :c 3.0]])]
+    (doseq [tree [(a/prim-minimum-spanning-tree gr)
+                  (a/kruskal-minimum-spanning-tree gr)
+                  (a/boruvka-minimum-spanning-tree gr)]]
+      (is (= 3.0 (:weight tree)))
+      (is (= 2 (count (:edges tree)))))
+    (let [result (a/spanner gr 2)]
+      (is (<= (count (:edges result)) 3))
+      (is (number? (:weight result)))))
+  (let [gr (g/weighted-graph [[:r :a 1.0] [:r :b 1.0] [:r :c 1.0]
+                              [:a :b 2.0] [:a :c 2.0] [:b :c 2.0]])
+        tree (a/capacitated-spanning-tree
+              gr :r 2.0 {:r 0.0 :a 1.0 :b 1.0 :c 1.0})]
+    (is (= 3 (count (:edges tree))))
+    (is (map? (:labels tree)))))
+
 (deftest matching
   (testing "maximum cardinality matching on an undirected graph"
     (let [gr (g/graph [[:a :b] [:b :c] [:c :d]])

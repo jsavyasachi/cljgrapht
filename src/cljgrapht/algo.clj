@@ -34,6 +34,7 @@
            (org.jgrapht.alg.spanning PrimMinimumSpanningTree)
            (org.jgrapht.alg.interfaces MatchingAlgorithm$Matching
                                        MaximumFlowAlgorithm$MaximumFlow
+                                       CapacitatedSpanningTreeAlgorithm$CapacitatedSpanningTree
                                        SpanningTreeAlgorithm$SpanningTree
                                        VertexColoringAlgorithm
                                        VertexColoringAlgorithm$Coloring)
@@ -42,6 +43,10 @@
            (org.jgrapht.alg.matching.blossom.v5 KolmogorovWeightedMatching
                                                 ObjectiveSense)
            (org.jgrapht.alg.flow PushRelabelMFImpl)
+           (org.jgrapht.alg.spanning BoruvkaMinimumSpanningTree
+                                     EsauWilliamsCapacitatedMinimumSpanningTree
+                                     GreedyMultiplicativeSpanner
+                                     KruskalMinimumSpanningTree)
            (org.jgrapht.alg.color GreedyColoring
                                   ColorRefinementAlgorithm
                                   LargestDegreeFirstColoring
@@ -130,6 +135,10 @@
 (defn- weighted-matching-result [^Graph g ^MatchingAlgorithm$Matching matching]
   {:edges (set (map (fn [e] (edge-pair g e)) (.getEdges matching)))
    :weight (.getWeight matching)})
+
+(defn- spanning-tree-result [^Graph g ^SpanningTreeAlgorithm$SpanningTree tree]
+  {:edges (set (map #(edge-pair g %) (.getEdges tree)))
+   :weight (.getWeight tree)})
 
 (defn- coloring-result [^VertexColoringAlgorithm algorithm]
   (let [^VertexColoringAlgorithm$Coloring coloring (.getColoring algorithm)]
@@ -370,9 +379,41 @@
   [^Graph g]
   (let [^SpanningTreeAlgorithm$SpanningTree st (.getSpanningTree
                                                 (PrimMinimumSpanningTree. g))]
-    {:edges (set (map (fn [e] [(.getEdgeSource g e) (.getEdgeTarget g e)])
-                      (.getEdges st)))
-     :weight (.getWeight st)}))
+    (spanning-tree-result g st)))
+
+(defn prim-minimum-spanning-tree
+  "Minimum spanning tree using Prim's algorithm."
+  [^Graph g]
+  (spanning-tree-result g (.getSpanningTree (PrimMinimumSpanningTree. g))))
+
+(defn kruskal-minimum-spanning-tree
+  "Minimum spanning tree using Kruskal's algorithm."
+  [^Graph g]
+  (spanning-tree-result g (.getSpanningTree (KruskalMinimumSpanningTree. g))))
+
+(defn boruvka-minimum-spanning-tree
+  "Minimum spanning tree using Boruvka's algorithm."
+  [^Graph g]
+  (spanning-tree-result g (.getSpanningTree (BoruvkaMinimumSpanningTree. g))))
+
+(defn spanner
+  "Greedy multiplicative `(2k-1)`-spanner as `{:edges ... :weight w}`."
+  [^Graph g k]
+  (let [result (.getSpanner (GreedyMultiplicativeSpanner. g (int k)))]
+    {:edges (set (map #(edge-pair g %) result))
+     :weight (.getWeight result)}))
+
+(defn capacitated-spanning-tree
+  "Esau-Williams capacitated spanning tree rooted at `root`. `demands` maps
+  vertices to nonnegative demand values."
+  [^Graph g root capacity demands]
+  (ensure-undirected g :capacitated-spanning-tree)
+  (let [^CapacitatedSpanningTreeAlgorithm$CapacitatedSpanningTree tree
+        (.getCapacitatedSpanningTree
+         (EsauWilliamsCapacitatedMinimumSpanningTree.
+          g root (double capacity) demands (int 1000)))]
+    (assoc (spanning-tree-result g tree)
+           :labels (into {} (.getLabels tree)))))
 
 (defn maximum-matching
   "Maximum cardinality matching of undirected graph `g` as
