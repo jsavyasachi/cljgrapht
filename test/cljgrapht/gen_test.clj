@@ -86,3 +86,78 @@
     (let [gr (gen/complement-graph (g/graph [[0 1] [1 2]]))]
       (is (= #{0 1 2} (some-> gr g/vertices)))
       (is (= #{#{0 2}} (some-> gr undirected-edge-set))))))
+
+(deftest additional-random-generators
+  (testing "G(n,m) graph"
+    (let [a (gen/gnm-random-graph 20 30 {:seed 42})
+          b (gen/gnm-random-graph 20 30 {:seed 42})]
+      (is (= 20 (some-> a g/vertices count)))
+      (is (= 30 (some-> a g/edges count)))
+      (is (= (some-> a undirected-edge-set)
+             (some-> b undirected-edge-set)))))
+  (testing "random bipartite graphs"
+    (let [gnm (gen/gnm-random-bipartite-graph 4 5 7 {:seed 42})
+          gnp-a (gen/gnp-random-bipartite-graph 4 5 0.4 {:seed 42})
+          gnp-b (gen/gnp-random-bipartite-graph 4 5 0.4 {:seed 42})]
+      (is (= [9 7] [(some-> gnm g/vertices count)
+                     (some-> gnm g/edges count)]))
+      (is (every? (fn [[u v]] (not= (< u 4) (< v 4)))
+                  (some-> gnm g/edges)))
+      (is (= (some-> gnp-a undirected-edge-set)
+             (some-> gnp-b undirected-edge-set)))
+      (is (every? (fn [[u v]] (not= (< u 4) (< v 4)))
+                  (some-> gnp-a g/edges)))))
+  (testing "Barabasi-Albert forest"
+    (let [a (gen/barabasi-albert-forest 3 20 {:seed 42})
+          b (gen/barabasi-albert-forest 3 20 {:seed 42})]
+      (is (= [20 17] [(some-> a g/vertices count)
+                       (some-> a g/edges count)]))
+      (is (= (some-> a undirected-edge-set)
+             (some-> b undirected-edge-set)))))
+  (testing "Kleinberg small-world graph"
+    (let [a (gen/kleinberg-small-world-graph 4 1 1 2 {:seed 42})
+          b (gen/kleinberg-small-world-graph 4 1 1 2 {:seed 42})]
+      (is (= 16 (some-> a g/vertices count)))
+      (is (= (some-> a undirected-edge-set)
+             (some-> b undirected-edge-set)))))
+  (testing "scale-free graph"
+    (let [a (gen/scale-free-graph 20 {:seed 42})
+          b (gen/scale-free-graph 20 {:seed 42})]
+      (is (= 20 (some-> a g/vertices count)))
+      (is (= (some-> a undirected-edge-set)
+             (some-> b undirected-edge-set)))))
+  (testing "random regular graph"
+    (let [gr (gen/random-regular-graph 20 4 {:seed 42})]
+      (is (= [20 40] [(some-> gr g/vertices count)
+                       (some-> gr g/edges count)]))
+      (is (every? #(= 4 (.degreeOf gr %)) (some-> gr g/vertices)))))
+  (testing "Prüfer trees"
+    (let [random-tree (gen/prufer-tree 10 {:seed 42})
+          fixed-tree (gen/prufer-tree [3 3 3])]
+      (is (= [10 9] [(some-> random-tree g/vertices count)
+                      (some-> random-tree g/edges count)]))
+      (is (= [5 4] [(some-> fixed-tree g/vertices count)
+                     (some-> fixed-tree g/edges count)]))
+      (is (= 4 (.degreeOf fixed-tree
+                          (first (filter #(= 3 %) (g/vertices fixed-tree))))))))
+  (testing "planted partition graph"
+    (let [gr (gen/planted-partition-graph 3 4 1.0 0.0 {:seed 42})]
+      (is (= [12 18] [(some-> gr g/vertices count)
+                       (some-> gr g/edges count)]))))
+  (testing "directed scale-free graph"
+    (let [a (gen/directed-scale-free-graph
+             0.4 0.4 1.0 1.0 30 -1 {:seed 42})
+          b (gen/directed-scale-free-graph
+             0.4 0.4 1.0 1.0 30 -1 {:seed 42})]
+      (is (true? (some-> a .getType .isDirected)))
+      (is (= 30 (some-> a g/edges count)))
+      (is (= (some-> a g/edges frequencies)
+             (some-> b g/edges frequencies)))))
+  (testing "linearized chord diagram graph"
+    (let [a (gen/linearized-chord-diagram-graph 10 3 {:seed 42})
+          b (gen/linearized-chord-diagram-graph 10 3 {:seed 42})]
+      (is (= [10 30] [(some-> a g/vertices count)
+                       (some-> a g/edges count)]))
+      (is (true? (some-> a .getType .isAllowingMultipleEdges)))
+      (is (= (some-> a g/edges frequencies)
+             (some-> b g/edges frequencies))))))

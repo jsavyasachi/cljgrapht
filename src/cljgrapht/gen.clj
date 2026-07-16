@@ -1,28 +1,40 @@
 (ns cljgrapht.gen
   "Graph generators returning new `cljgrapht.core` graphs."
   (:require [cljgrapht.core :as core])
-  (:import (java.util HashMap)
+  (:import (java.util HashMap Random)
            (java.util.concurrent.atomic AtomicInteger)
            (java.util.function Supplier)
            (org.jgrapht Graph)
-           (org.jgrapht.generate BarabasiAlbertGraphGenerator
+           (org.jgrapht.generate BarabasiAlbertForestGenerator
+                                  BarabasiAlbertGraphGenerator
                                   ComplementGraphGenerator
                                   CompleteBipartiteGraphGenerator
                                   CompleteGraphGenerator
+                                  DirectedScaleFreeGraphGenerator
                                   EmptyGraphGenerator
                                   GeneralizedPetersenGraphGenerator
+                                  GnmRandomBipartiteGraphGenerator
+                                  GnmRandomGraphGenerator
+                                  GnpRandomBipartiteGraphGenerator
                                   GnpRandomGraphGenerator
                                   GraphGenerator
                                   GridGraphGenerator
                                   HyperCubeGraphGenerator
+                                  KleinbergSmallWorldGraphGenerator
                                   LinearGraphGenerator
+                                  LinearizedChordDiagramGraphGenerator
+                                  PlantedPartitionGraphGenerator
+                                  PruferTreeGenerator
+                                  RandomRegularGraphGenerator
                                   RingGraphGenerator
+                                  ScaleFreeGraphGenerator
                                   StarGraphGenerator
                                   WattsStrogatzGraphGenerator
                                   WheelGraphGenerator
                                   WindmillGraphsGenerator
                                   WindmillGraphsGenerator$Mode)
-           (org.jgrapht.graph AbstractBaseGraph)))
+           (org.jgrapht.graph AbstractBaseGraph DefaultEdge)
+           (org.jgrapht.graph.builder GraphTypeBuilder)))
 
 (defn- int-supplier ^Supplier []
   (let [counter (AtomicInteger. 0)]
@@ -32,12 +44,22 @@
 (defn- graph-with-supplier
   (^Graph []
    (graph-with-supplier {}))
-  (^Graph [{:keys [directed? weighted?]}]
-   (let [^AbstractBaseGraph g (cond
-                                (and directed? weighted?) (core/weighted-digraph)
-                                directed? (core/digraph)
-                                weighted? (core/weighted-graph)
-                                :else (core/graph))]
+  (^Graph [{:keys [directed? weighted? multiple-edges? simple?]}]
+   (let [^AbstractBaseGraph g
+         (if (or multiple-edges? simple?)
+           (-> ^GraphTypeBuilder (if directed?
+                                   (GraphTypeBuilder/directed)
+                                   (GraphTypeBuilder/undirected))
+               (.allowingMultipleEdges (boolean multiple-edges?))
+               (.allowingSelfLoops (not simple?))
+               (.weighted false)
+               (.edgeClass DefaultEdge)
+               (.buildGraph))
+           (cond
+             (and directed? weighted?) (core/weighted-digraph)
+             directed? (core/digraph)
+             weighted? (core/weighted-graph)
+             :else (core/graph)))]
      (.setVertexSupplier g (int-supplier))
      g)))
 
@@ -128,10 +150,50 @@
   "A new undirected Erdos-Renyi G(n,p) graph."
   (^Graph [n p]
    (generate (GnpRandomGraphGenerator. (int n) (double p))))
-  (^Graph [n p {:keys [seed]}]
-   (if (some? seed)
-     (generate (GnpRandomGraphGenerator. (int n) (double p) (long seed)))
-     (gnp-random-graph n p))))
+  (^Graph [n p {:keys [seed directed? self-loops?]}]
+   (let [generator (if (some? seed)
+                     (GnpRandomGraphGenerator. (int n) (double p) (long seed)
+                                               (boolean self-loops?))
+                     (GnpRandomGraphGenerator. (int n) (double p) (Random.)
+                                               (boolean self-loops?)))]
+     (generate generator {:directed? directed?}))))
+
+(defn gnm-random-graph
+  "A new graph sampled uniformly from graphs with n vertices and m edges."
+  (^Graph [n m]
+   (generate (GnmRandomGraphGenerator. (int n) (int m))))
+  (^Graph [n m {:keys [seed directed? self-loops? multiple-edges?]}]
+   (let [rng (if (some? seed) (Random. (long seed)) (Random.))]
+     (generate (GnmRandomGraphGenerator.
+                (int n) (int m) rng (boolean self-loops?)
+                (boolean multiple-edges?))
+               {:directed? directed? :multiple-edges? multiple-edges?}))))
+
+(defn gnp-random-bipartite-graph
+  "A new random bipartite graph with partition sizes n1 and n2 and edge probability p."
+  (^Graph [n1 n2 p]
+   (generate (GnpRandomBipartiteGraphGenerator.
+              (int n1) (int n2) (double p))))
+  (^Graph [n1 n2 p {:keys [seed directed?]}]
+   (let [generator (if (some? seed)
+                     (GnpRandomBipartiteGraphGenerator.
+                      (int n1) (int n2) (double p) (long seed))
+                     (GnpRandomBipartiteGraphGenerator.
+                      (int n1) (int n2) (double p)))]
+     (generate generator {:directed? directed?}))))
+
+(defn gnm-random-bipartite-graph
+  "A new random bipartite graph with partition sizes n1 and n2 and m edges."
+  (^Graph [n1 n2 m]
+   (generate (GnmRandomBipartiteGraphGenerator.
+              (int n1) (int n2) (int m))))
+  (^Graph [n1 n2 m {:keys [seed directed?]}]
+   (let [generator (if (some? seed)
+                     (GnmRandomBipartiteGraphGenerator.
+                      (int n1) (int n2) (int m) (long seed))
+                     (GnmRandomBipartiteGraphGenerator.
+                      (int n1) (int n2) (int m)))]
+     (generate generator {:directed? directed?}))))
 
 (defn barabasi-albert-graph
   "A new undirected Barabasi-Albert graph with initial `m0`, `m`, and total `n`."
@@ -141,6 +203,99 @@
    (if (some? seed)
      (generate (BarabasiAlbertGraphGenerator. (int m0) (int m) (int n) (long seed)))
      (barabasi-albert-graph m0 m n))))
+
+(defn barabasi-albert-forest
+  "A new Barabasi-Albert forest with t trees and n total vertices."
+  (^Graph [t n]
+   (generate (BarabasiAlbertForestGenerator. (int t) (int n))))
+  (^Graph [t n {:keys [seed]}]
+   (if (some? seed)
+     (generate (BarabasiAlbertForestGenerator. (int t) (int n) (long seed)))
+     (barabasi-albert-forest t n))))
+
+(defn kleinberg-small-world-graph
+  "A new Kleinberg n-by-n lattice with local radius p and q long-range contacts."
+  (^Graph [n p q r]
+   (generate (KleinbergSmallWorldGraphGenerator.
+              (int n) (int p) (int q) (int r))))
+  (^Graph [n p q r {:keys [seed directed?]}]
+   (let [generator (if (some? seed)
+                     (KleinbergSmallWorldGraphGenerator.
+                      (int n) (int p) (int q) (int r) (long seed))
+                     (KleinbergSmallWorldGraphGenerator.
+                      (int n) (int p) (int q) (int r)))]
+     (generate generator {:directed? directed?}))))
+
+(defn scale-free-graph
+  "A new scale-free graph with n vertices."
+  (^Graph [n]
+   (generate (ScaleFreeGraphGenerator. (int n))))
+  (^Graph [n {:keys [seed directed?]}]
+   (let [generator (if (some? seed)
+                     (ScaleFreeGraphGenerator. (int n) (long seed))
+                     (ScaleFreeGraphGenerator. (int n)))]
+     (generate generator {:directed? directed?}))))
+
+(defn random-regular-graph
+  "A new random d-regular graph with n vertices."
+  (^Graph [n d]
+   (generate (RandomRegularGraphGenerator. (int n) (int d)) {:simple? true}))
+  (^Graph [n d {:keys [seed]}]
+   (if (some? seed)
+     (generate (RandomRegularGraphGenerator. (int n) (int d) (long seed))
+               {:simple? true})
+     (random-regular-graph n d))))
+
+(defn prufer-tree
+  "A new tree from a vertex count or an explicit Prüfer sequence."
+  (^Graph [n-or-sequence]
+   (if (sequential? n-or-sequence)
+     (generate (PruferTreeGenerator. (int-array n-or-sequence)))
+     (generate (PruferTreeGenerator. (int n-or-sequence)))))
+  (^Graph [n {:keys [seed]}]
+   (if (some? seed)
+     (generate (PruferTreeGenerator. (int n) (long seed)))
+     (prufer-tree n))))
+
+(defn planted-partition-graph
+  "A new planted partition graph with l groups of k vertices."
+  (^Graph [l k p q]
+   (generate (PlantedPartitionGraphGenerator.
+              (int l) (int k) (double p) (double q))))
+  (^Graph [l k p q {:keys [seed directed? self-loops?]}]
+   (let [rng (if (some? seed) (Random. (long seed)) (Random.))]
+     (generate (PlantedPartitionGraphGenerator.
+                (int l) (int k) (double p) (double q) rng
+                (boolean self-loops?))
+               {:directed? directed?}))))
+
+(defn directed-scale-free-graph
+  "A new directed scale-free graph controlled by edge and vertex targets."
+  (^Graph [alpha gamma delta-in delta-out target-edges target-nodes]
+   (directed-scale-free-graph alpha gamma delta-in delta-out
+                              target-edges target-nodes {}))
+  (^Graph [alpha gamma delta-in delta-out target-edges target-nodes
+           {:keys [seed multiple-edges? self-loops?]
+            :or {multiple-edges? true self-loops? true}}]
+   (let [rng (if (some? seed) (Random. (long seed)) (Random.))
+         generator (DirectedScaleFreeGraphGenerator.
+                    (float alpha) (float gamma) (float delta-in) (float delta-out)
+                    (int target-edges) (int target-nodes) rng
+                    (boolean multiple-edges?) (boolean self-loops?))]
+     (generate generator
+               {:directed? true :multiple-edges? multiple-edges?}))))
+
+(defn linearized-chord-diagram-graph
+  "A new linearized chord diagram multigraph with n vertices and m edges per vertex."
+  (^Graph [n m]
+   (generate (LinearizedChordDiagramGraphGenerator. (int n) (int m))
+             {:multiple-edges? true}))
+  (^Graph [n m {:keys [seed]}]
+   (let [generator (if (some? seed)
+                     (LinearizedChordDiagramGraphGenerator.
+                      (int n) (int m) (long seed))
+                     (LinearizedChordDiagramGraphGenerator. (int n) (int m)))]
+     (generate generator {:multiple-edges? true}))))
 
 (defn watts-strogatz-graph
   "A new undirected Watts-Strogatz graph with n vertices, degree k, and rewiring p."
