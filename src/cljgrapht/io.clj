@@ -9,6 +9,7 @@
            (org.jgrapht Graph)
            (org.jgrapht.nio DefaultAttribute GraphExporter)
            (org.jgrapht.nio.dot DOTExporter DOTImporter)
+           (org.jgrapht.nio.gml GmlExporter GmlExporter$Parameter GmlImporter)
            (org.jgrapht.nio.graphml GraphMLExporter GraphMLImporter)))
 
 (defn- valid-id? [^String s]
@@ -41,6 +42,22 @@
   (reify Function
     (apply [_ v]
       (Collections/singletonMap "label" (DefaultAttribute/createAttribute (pr-str v))))))
+
+(defn- attribute [v]
+  (cond
+    (instance? Boolean v) (DefaultAttribute/createAttribute ^Boolean v)
+    (instance? Integer v) (DefaultAttribute/createAttribute ^Integer v)
+    (instance? Long v) (DefaultAttribute/createAttribute ^Long v)
+    (instance? Float v) (DefaultAttribute/createAttribute ^Float v)
+    (instance? Double v) (DefaultAttribute/createAttribute ^Double v)
+    :else (DefaultAttribute/createAttribute (str v))))
+
+(defn- attribute-provider ^Function [attributes]
+  (reify Function
+    (apply [_ v]
+      (into {}
+            (map (fn [[k value]] [(name k) (attribute value)]))
+            (get attributes v {})))))
 
 (defn- export-string [^GraphExporter exporter ^Graph g]
   (let [writer (StringWriter.)]
@@ -114,6 +131,35 @@
         ^Graph g (graph-for directed? weighted?)
         ^GraphMLImporter importer (GraphMLImporter.)]
     (.setSchemaValidation importer false)
+    (.setVertexFactory importer (reify Function
+                                  (apply [_ id] id)))
+    (.importGraph importer g (StringReader. s))
+    g))
+
+(defn gml
+  "GML string for `g`. Set `:attributes` to a vertex-to-attribute map."
+  (^String [^Graph g] (gml g {}))
+  (^String [^Graph g {:keys [attributes]}]
+   (let [^GmlExporter exporter (GmlExporter.)]
+     (.setParameter exporter GmlExporter$Parameter/EXPORT_EDGE_WEIGHTS true)
+     (when attributes
+       (.setParameter exporter GmlExporter$Parameter/EXPORT_CUSTOM_VERTEX_ATTRIBUTES true)
+       (.setVertexAttributeProvider exporter (attribute-provider attributes)))
+     (export-string exporter g))))
+
+(defn write-gml!
+  "Write `(gml g opts)` to `path`, returning nil."
+  ([^Graph g path] (write-gml! g path {}))
+  ([^Graph g path opts] (spit path (gml g opts))))
+
+(defn read-gml
+  "Read a GML string or existing path. Imported vertices are numeric GML ids."
+  [path-or-string]
+  (let [s (input-string path-or-string)
+        directed? (boolean (re-find #"(?m)^\s*directed\s+1\s*$" s))
+        weighted? (boolean (re-find #"(?m)^\s*weight\s+" s))
+        ^Graph g (graph-for directed? weighted?)
+        ^GmlImporter importer (GmlImporter.)]
     (.setVertexFactory importer (reify Function
                                   (apply [_ id] id)))
     (.importGraph importer g (StringReader. s))
