@@ -1,6 +1,33 @@
 (ns cljgrapht.core-test
-  (:require [clojure.test :refer [deftest testing is]]
+  (:require [clojure.edn :as edn]
+            [clojure.java.io :as io]
+            [clojure.string :as str]
+            [clojure.test :refer [deftest testing is]]
             [cljgrapht.core :as g]))
+
+(deftest core-works-without-loom
+  (testing "Loom is not a mandatory runtime dependency"
+    (is (not (contains? (:deps (edn/read-string (slurp "deps.edn")))
+                        'net.clojars.savya/loom))))
+  (testing "the core API loads and runs with Loom removed from the classpath"
+    (let [separator (System/getProperty "path.separator")
+          loom-path? #(re-find #"[/\\]loom(?:[/\\]|-[^/\\]*\\.jar$)" %)
+          classpath (->> (str/split (System/getProperty "java.class.path")
+                                    (re-pattern (java.util.regex.Pattern/quote separator)))
+                         (remove loom-path?)
+                         (str/join separator))
+          java (str (System/getProperty "java.home")
+                    java.io.File/separator "bin" java.io.File/separator "java")
+          expression (str "(require '[cljgrapht.core :as g]) "
+                          "(assert (= #{:a :b} "
+                          "(g/vertices (g/graph [[:a :b]]))))")
+          process (-> (ProcessBuilder. [java "-cp" classpath
+                                        "clojure.main" "-e" expression])
+                      (.redirectErrorStream true)
+                      (.start))
+          output (with-open [reader (io/reader (.getInputStream process))]
+                   (slurp reader))]
+      (is (zero? (.waitFor process)) output))))
 
 (deftest empty-constructors
   (testing "empty graphs have no vertices or edges"
