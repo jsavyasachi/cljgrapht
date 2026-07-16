@@ -8,48 +8,113 @@
   directed graphs."
   (:require [cljgrapht.core :as core])
   (:import (java.util Collection HashSet)
-           (java.util.function Supplier)
-           (org.jgrapht Graph GraphPath)
-           (org.jgrapht.graph DefaultEdge DefaultWeightedEdge)
+           (java.util.concurrent Executors ThreadPoolExecutor)
+           (java.util.function Function Supplier)
+           (org.jgrapht Graph GraphPath GraphTests)
+           (org.jgrapht.graph DefaultEdge DefaultWeightedEdge SimpleDirectedGraph)
            (org.jgrapht.graph.builder GraphTypeBuilder)
+           (org.jgrapht.alg StoerWagnerMinimumCut TransitiveClosure TransitiveReduction)
            (org.jgrapht.alg.shortestpath AStarShortestPath
                                          AllDirectedPaths
                                          BellmanFordShortestPath
+                                         BidirectionalDijkstraShortestPath
+                                         ContractionHierarchyBidirectionalDijkstra
+                                         DeltaSteppingShortestPath
                                          DijkstraShortestPath
                                          FloydWarshallShortestPaths
+                                         GraphMeasurer
                                          JohnsonShortestPaths
+                                         SuurballeKDisjointShortestPaths
                                          YenKShortestPath)
            (org.jgrapht.alg.interfaces AStarAdmissibleHeuristic
                                        PartitioningAlgorithm$Partitioning
                                        ShortestPathAlgorithm$SingleSourcePaths)
            (org.jgrapht.alg.connectivity ConnectivityInspector
+                                         BiconnectivityInspector
+                                         GabowStrongConnectivityInspector
                                          KosarajuStrongConnectivityInspector)
            (org.jgrapht.alg.cycle CycleDetector
+                                  ChinesePostman
+                                  ChordalityInspector
                                   DirectedSimpleCycles
-                                  JohnsonSimpleCycles)
-           (org.jgrapht.alg.clique BronKerboschCliqueFinder)
+                                  HierholzerEulerianCycle
+                                  JohnsonSimpleCycles
+                                  PatonCycleBase
+                                  SzwarcfiterLauerSimpleCycles
+                                  TarjanSimpleCycles)
+           (org.jgrapht.alg.clique BronKerboschCliqueFinder
+                                   ChordalGraphMaxCliqueFinder
+                                   DegeneracyBronKerboschCliqueFinder
+                                   PivotBronKerboschCliqueFinder)
            (org.jgrapht.alg.spanning PrimMinimumSpanningTree)
            (org.jgrapht.alg.interfaces MatchingAlgorithm$Matching
                                        MaximumFlowAlgorithm$MaximumFlow
+                                       MinimumCostFlowAlgorithm$MinimumCostFlow
+                                       CapacitatedSpanningTreeAlgorithm$CapacitatedSpanningTree
                                        SpanningTreeAlgorithm$SpanningTree
+                                       VertexCoverAlgorithm$VertexCover
                                        VertexColoringAlgorithm
                                        VertexColoringAlgorithm$Coloring)
            (org.jgrapht.alg.matching DenseEdmondsMaximumCardinalityMatching
-                                     HopcroftKarpMaximumCardinalityBipartiteMatching)
+                                     GreedyMaximumCardinalityMatching
+                                     GreedyWeightedMatching
+                                     HopcroftKarpMaximumCardinalityBipartiteMatching
+                                     KuhnMunkresMinimalWeightBipartitePerfectMatching
+                                     PathGrowingWeightedMatching
+                                     SparseEdmondsMaximumCardinalityMatching)
            (org.jgrapht.alg.matching.blossom.v5 KolmogorovWeightedMatching
                                                 ObjectiveSense)
-           (org.jgrapht.alg.flow PushRelabelMFImpl)
-           (org.jgrapht.alg.color GreedyColoring
+           (org.jgrapht.alg.vertexcover BarYehudaEvenTwoApproxVCImpl
+                                        ClarksonTwoApproxVCImpl
+                                        EdgeBasedTwoApproxVCImpl
+                                        GreedyVCImpl
+                                        RecursiveExactVCImpl)
+           (org.jgrapht.alg.tour ChristofidesThreeHalvesApproxMetricTSP
+                                 GreedyHeuristicTSP
+                                 HeldKarpTSP
+                                 NearestInsertionHeuristicTSP
+                                 NearestNeighborHeuristicTSP
+                                 PalmerHamiltonianCycle
+                                 RandomTourTSP
+                                 TwoOptHeuristicTSP)
+           (org.jgrapht.alg.clustering GirvanNewmanClustering
+                                       KSpanningTreeClustering
+                                       LabelPropagationClustering)
+           (org.jgrapht.alg.flow DinicMFImpl
+                                  EdmondsKarpMFImpl
+                                  GusfieldGomoryHuCutTree
+                                  PushRelabelMFImpl)
+           (org.jgrapht.alg.flow.mincost CapacityScalingMinimumCostFlow
+                                          MinimumCostFlowProblem$MinimumCostFlowProblemImpl)
+           (org.jgrapht.alg.spanning BoruvkaMinimumSpanningTree
+                                     EsauWilliamsCapacitatedMinimumSpanningTree
+                                     GreedyMultiplicativeSpanner
+                                     KruskalMinimumSpanningTree)
+           (org.jgrapht.alg.color ChordalGraphColoring
+                                  GreedyColoring
+                                  ColorRefinementAlgorithm
                                   LargestDegreeFirstColoring
+                                  RandomGreedyColoring
                                   SaturationDegreeColoring
                                   SmallestDegreeLastColoring)
            (org.jgrapht.alg.scoring BetweennessCentrality
                                     ClosenessCentrality
                                     ClusteringCoefficient
                                     Coreness
+                                    EigenvectorCentrality
+                                    HarmonicCentrality
+                                    KatzCentrality
                                     PageRank)
            (org.jgrapht.alg.partition BipartitePartitioning)
-           (org.jgrapht.alg.isomorphism VF2GraphIsomorphismInspector)
+           (org.jgrapht.alg.independentset ChordalGraphIndependentSetFinder)
+           (org.jgrapht.alg.isomorphism AHURootedTreeIsomorphismInspector
+                                          AHUUnrootedTreeIsomorphismInspector
+                                          ColorRefinementIsomorphismInspector
+                                          VF2GraphIsomorphismInspector
+                                          VF2SubgraphIsomorphismInspector)
+           (org.jgrapht.alg.similarity ZhangShashaTreeEditDistance)
+           (org.jgrapht.alg.planar BoyerMyrvoldPlanarityInspector)
+           (org.jgrapht.alg.decomposition DulmageMendelsohnDecomposition)
            (org.jgrapht.traverse BreadthFirstIterator
                                  DepthFirstIterator
                                  TopologicalOrderIterator)))
@@ -122,6 +187,10 @@
 (defn- weighted-matching-result [^Graph g ^MatchingAlgorithm$Matching matching]
   {:edges (set (map (fn [e] (edge-pair g e)) (.getEdges matching)))
    :weight (.getWeight matching)})
+
+(defn- spanning-tree-result [^Graph g ^SpanningTreeAlgorithm$SpanningTree tree]
+  {:edges (set (map #(edge-pair g %) (.getEdges tree)))
+   :weight (.getWeight tree)})
 
 (defn- coloring-result [^VertexColoringAlgorithm algorithm]
   (let [^VertexColoringAlgorithm$Coloring coloring (.getColoring algorithm)]
@@ -242,6 +311,74 @@
   (ensure-directed g :all-simple-paths)
   (mapv path-result (.getAllPaths (AllDirectedPaths. g) src dst true nil)))
 
+(defn bidirectional-shortest-path
+  "Cheapest path from `src` to `dst` using bidirectional Dijkstra."
+  [^Graph g src dst]
+  (path-result (.getPath (BidirectionalDijkstraShortestPath. g) src dst)))
+
+(defn delta-stepping-shortest-path
+  "Cheapest path from `src` to `dst` using parallel delta-stepping."
+  [^Graph g src dst]
+  (let [^ThreadPoolExecutor executor (Executors/newFixedThreadPool 1)]
+    (try
+      (path-result (.getPath (DeltaSteppingShortestPath. g executor) src dst))
+      (finally
+        (.shutdownNow executor)))))
+
+(defn contraction-hierarchy-shortest-path
+  "Cheapest path from `src` to `dst` using a contraction hierarchy."
+  [^Graph g src dst]
+  (let [^ThreadPoolExecutor executor (Executors/newFixedThreadPool 1)]
+    (try
+      (path-result
+       (.getPath (ContractionHierarchyBidirectionalDijkstra. g executor) src dst))
+      (finally
+        (.shutdownNow executor)))))
+
+(defn yen-k-shortest-paths
+  "The `k` shortest loopless paths from `src` to `dst` using Yen's algorithm."
+  [^Graph g src dst k]
+  (mapv path-result (.getPaths (YenKShortestPath. g) src dst (int k))))
+
+(defn disjoint-shortest-paths
+  "Up to `k` edge-disjoint shortest paths from `src` to `dst` using Suurballe."
+  [^Graph g src dst k]
+  (ensure-directed g :disjoint-shortest-paths)
+  (mapv path-result
+        (.getPaths (SuurballeKDisjointShortestPaths. g) src dst (int k))))
+
+(defn all-directed-paths
+  "All directed paths from `src` to `dst`. Options are `:simple?` (default true)
+  and `:max-length`, the maximum number of edges."
+  ([^Graph g src dst]
+   (all-directed-paths g src dst {}))
+  ([^Graph g src dst {:keys [simple? max-length]
+                      :or {simple? true}}]
+   (ensure-directed g :all-directed-paths)
+   (mapv path-result
+         (.getAllPaths (AllDirectedPaths. g) src dst (boolean simple?)
+                       (when (some? max-length) (Integer/valueOf (int max-length)))))))
+
+(defn transitive-reduction
+  "Edges of the transitive reduction of directed acyclic graph `g`."
+  [^Graph g]
+  (ensure-directed g :transitive-reduction)
+  (let [copy (graph-with-suppliers g)]
+    (.reduce TransitiveReduction/INSTANCE copy)
+    (set (map #(edge-pair copy %) (.edgeSet copy)))))
+
+(defn transitive-closure
+  "Edges of the transitive closure of directed graph `g`."
+  [^Graph g]
+  (ensure-directed g :transitive-closure)
+  (let [^SimpleDirectedGraph copy (SimpleDirectedGraph. DefaultEdge)]
+    (doseq [v (.vertexSet g)]
+      (.addVertex copy v))
+    (doseq [e (.edgeSet g)]
+      (.addEdge copy (.getEdgeSource g e) (.getEdgeTarget g e)))
+    (.closeSimpleDirectedGraph TransitiveClosure/INSTANCE copy)
+    (set (map #(edge-pair copy %) (.edgeSet copy)))))
+
 (defn connected-components
   "Seq of vertex sets, one per connected component (undirected; for a directed
   graph these are the weakly-connected components)."
@@ -252,6 +389,68 @@
   "Seq of vertex sets, one per strongly-connected component (directed)."
   [^Graph g]
   (map set (.stronglyConnectedSets (KosarajuStrongConnectivityInspector. g))))
+
+(defn gabow-strongly-connected-components
+  "Seq of strongly-connected vertex sets using Gabow's algorithm."
+  [^Graph g]
+  (ensure-directed g :gabow-strongly-connected-components)
+  (map set (.stronglyConnectedSets (GabowStrongConnectivityInspector. g))))
+
+(defn kosaraju-strongly-connected-components
+  "Seq of strongly-connected vertex sets using Kosaraju's algorithm."
+  [^Graph g]
+  (ensure-directed g :kosaraju-strongly-connected-components)
+  (map set (.stronglyConnectedSets (KosarajuStrongConnectivityInspector. g))))
+
+(defn articulation-points
+  "Set of articulation vertices in an undirected graph."
+  [^Graph g]
+  (ensure-undirected g :articulation-points)
+  (set (.getCutpoints (BiconnectivityInspector. g))))
+
+(defn bridges
+  "Set of bridge edges as `[source target]` pairs in an undirected graph."
+  [^Graph g]
+  (ensure-undirected g :bridges)
+  (set (map #(edge-pair g %) (.getBridges (BiconnectivityInspector. g)))))
+
+(defn biconnected-components
+  "Seq of vertex sets, one per maximal biconnected block."
+  [^Graph g]
+  (ensure-undirected g :biconnected-components)
+  (map #(set (.vertexSet ^Graph %)) (.getBlocks (BiconnectivityInspector. g))))
+
+(defn blocks
+  "Seq of vertex sets, one per block of an undirected graph."
+  [^Graph g]
+  (biconnected-components g))
+
+(defn block-cut-tree
+  "Block-cut tree as block sets, articulation vertices, and `[block cutpoint]`
+  edges."
+  [^Graph g]
+  (ensure-undirected g :block-cut-tree)
+  (let [block-sets (set (biconnected-components g))
+        cutpoints (articulation-points g)]
+    {:blocks block-sets
+     :articulation-points cutpoints
+     :edges (set (for [block block-sets
+                       cutpoint cutpoints
+                       :when (contains? block cutpoint)]
+                   [block cutpoint]))}))
+
+(defn condensation
+  "Condensation DAG of a directed graph as SCC vertex sets and edges between
+  those sets."
+  [^Graph g]
+  (ensure-directed g :condensation)
+  (let [^Graph condensed (.getCondensation
+                          (KosarajuStrongConnectivityInspector. g))
+        component (fn [^Graph subgraph] (set (.vertexSet subgraph)))]
+    {:components (set (map component (.vertexSet condensed)))
+     :edges (set (for [e (.edgeSet condensed)]
+                   [(component (.getEdgeSource condensed e))
+                    (component (.getEdgeTarget condensed e))]))}))
 
 (defn connected?
   "True if `g` is connected. Directed graphs are checked as weakly connected."
@@ -287,6 +486,52 @@
   (ensure-directed g :simple-cycles)
   (mapv vec (.findSimpleCycles ^DirectedSimpleCycles (JohnsonSimpleCycles. g))))
 
+(defn- directed-cycles [^Graph g operation ^DirectedSimpleCycles algorithm]
+  (ensure-directed g operation)
+  (mapv vec (.findSimpleCycles algorithm)))
+
+(defn johnson-simple-cycles
+  "Simple directed cycles using Johnson's algorithm."
+  [^Graph g]
+  (directed-cycles g :johnson-simple-cycles (JohnsonSimpleCycles. g)))
+
+(defn tarjan-simple-cycles
+  "Simple directed cycles using Tarjan's algorithm."
+  [^Graph g]
+  (directed-cycles g :tarjan-simple-cycles (TarjanSimpleCycles. g)))
+
+(defn szwarcfiter-lauer-simple-cycles
+  "Simple directed cycles using the Szwarcfiter-Lauer algorithm."
+  [^Graph g]
+  (directed-cycles g :szwarcfiter-lauer-simple-cycles
+                   (SzwarcfiterLauerSimpleCycles. g)))
+
+(defn cycle-basis
+  "Paton cycle basis as `{:cycles [[v ...] ...] :length n :weight w}`."
+  [^Graph g]
+  (ensure-undirected g :cycle-basis)
+  (let [basis (.getCycleBasis (PatonCycleBase. g))]
+    {:cycles (mapv #(vec (.getVertexList ^GraphPath %))
+                   (.getCyclesAsGraphPaths basis))
+     :length (.getLength basis)
+     :weight (.getWeight basis)}))
+
+(defn eulerian?
+  "True when `g` has an Eulerian cycle."
+  [^Graph g]
+  (GraphTests/isEulerian g))
+
+(defn eulerian-cycle
+  "Eulerian cycle as `{:path [v ...] :weight w}`, or nil when none exists."
+  [^Graph g]
+  (when (eulerian? g)
+    (path-result (.getEulerianCycle (HierholzerEulerianCycle.) g))))
+
+(defn chinese-postman
+  "Minimum closed walk covering every edge as `{:path [v ...] :weight w}`."
+  [^Graph g]
+  (path-result (.getCPPSolution (ChinesePostman.) g)))
+
 (defn topological-sort
   "Vector of vertices of directed acyclic graph `g` in topological order, or nil
   if `g` contains a cycle."
@@ -300,9 +545,41 @@
   [^Graph g]
   (let [^SpanningTreeAlgorithm$SpanningTree st (.getSpanningTree
                                                 (PrimMinimumSpanningTree. g))]
-    {:edges (set (map (fn [e] [(.getEdgeSource g e) (.getEdgeTarget g e)])
-                      (.getEdges st)))
-     :weight (.getWeight st)}))
+    (spanning-tree-result g st)))
+
+(defn prim-minimum-spanning-tree
+  "Minimum spanning tree using Prim's algorithm."
+  [^Graph g]
+  (spanning-tree-result g (.getSpanningTree (PrimMinimumSpanningTree. g))))
+
+(defn kruskal-minimum-spanning-tree
+  "Minimum spanning tree using Kruskal's algorithm."
+  [^Graph g]
+  (spanning-tree-result g (.getSpanningTree (KruskalMinimumSpanningTree. g))))
+
+(defn boruvka-minimum-spanning-tree
+  "Minimum spanning tree using Boruvka's algorithm."
+  [^Graph g]
+  (spanning-tree-result g (.getSpanningTree (BoruvkaMinimumSpanningTree. g))))
+
+(defn spanner
+  "Greedy multiplicative `(2k-1)`-spanner as `{:edges ... :weight w}`."
+  [^Graph g k]
+  (let [result (.getSpanner (GreedyMultiplicativeSpanner. g (int k)))]
+    {:edges (set (map #(edge-pair g %) result))
+     :weight (.getWeight result)}))
+
+(defn capacitated-spanning-tree
+  "Esau-Williams capacitated spanning tree rooted at `root`. `demands` maps
+  vertices to nonnegative demand values."
+  [^Graph g root capacity demands]
+  (ensure-undirected g :capacitated-spanning-tree)
+  (let [^CapacitatedSpanningTreeAlgorithm$CapacitatedSpanningTree tree
+        (.getCapacitatedSpanningTree
+         (EsauWilliamsCapacitatedMinimumSpanningTree.
+          g root (double capacity) demands (int 1000)))]
+    (assoc (spanning-tree-result g tree)
+           :labels (into {} (.getLabels tree)))))
 
 (defn maximum-matching
   "Maximum cardinality matching of undirected graph `g` as
@@ -335,12 +612,226 @@
                                                (HashSet. ^Collection part2)))]
     (matching-result g matching)))
 
+(defn dense-edmonds-maximum-matching
+  "Maximum-cardinality matching using the dense Edmonds implementation."
+  [^Graph g]
+  (ensure-undirected g :dense-edmonds-maximum-matching)
+  (matching-result g (.getMatching (DenseEdmondsMaximumCardinalityMatching. g))))
+
+(defn sparse-edmonds-maximum-matching
+  "Maximum-cardinality matching using the sparse Edmonds implementation."
+  [^Graph g]
+  (ensure-undirected g :sparse-edmonds-maximum-matching)
+  (matching-result g (.getMatching (SparseEdmondsMaximumCardinalityMatching. g))))
+
+(defn hopcroft-karp-matching
+  "Maximum bipartite matching using Hopcroft-Karp."
+  [^Graph g part1 part2]
+  (ensure-undirected g :hopcroft-karp-matching)
+  (matching-result
+   g (.getMatching (HopcroftKarpMaximumCardinalityBipartiteMatching.
+                    g (HashSet. ^Collection part1) (HashSet. ^Collection part2)))))
+
+(defn dulmage-mendelsohn
+  "Dulmage-Mendelsohn decomposition of a bipartite graph. Set `:fine?` for the
+  fine decomposition of the perfectly matched part."
+  ([^Graph g part1 part2]
+   (dulmage-mendelsohn g part1 part2 {}))
+  ([^Graph g part1 part2 {:keys [fine?] :or {fine? false}}]
+   (ensure-undirected g :dulmage-mendelsohn)
+   (let [decomposition (.getDecomposition
+                        (DulmageMendelsohnDecomposition.
+                         g (HashSet. ^Collection part1) (HashSet. ^Collection part2))
+                        (boolean fine?))]
+     {:partition1-dominated (set (.getPartition1DominatedSet decomposition))
+      :partition2-dominated (set (.getPartition2DominatedSet decomposition))
+      :perfect-matched (mapv set (.getPerfectMatchedSets decomposition))})))
+
+(defn assignment
+  "Minimum-weight perfect bipartite matching between `part1` and `part2`."
+  [^Graph g part1 part2]
+  (ensure-undirected g :assignment)
+  (weighted-matching-result
+   g (.getMatching (KuhnMunkresMinimalWeightBipartitePerfectMatching.
+                    g (HashSet. ^Collection part1) (HashSet. ^Collection part2)))))
+
+(defn minimal-weight-perfect-matching
+  "Alias for `assignment`."
+  [^Graph g part1 part2]
+  (assignment g part1 part2))
+
+(defn path-growing-weighted-matching
+  "Approximate maximum-weight matching using path growing."
+  [^Graph g]
+  (ensure-undirected g :path-growing-weighted-matching)
+  (weighted-matching-result g (.getMatching (PathGrowingWeightedMatching. g))))
+
+(defn greedy-maximum-matching
+  "Greedy maximal cardinality matching."
+  [^Graph g]
+  (ensure-undirected g :greedy-maximum-matching)
+  (matching-result g (.getMatching (GreedyMaximumCardinalityMatching. g true))))
+
+(defn greedy-weighted-matching
+  "Greedy approximate maximum-weight matching."
+  [^Graph g]
+  (ensure-undirected g :greedy-weighted-matching)
+  (weighted-matching-result g (.getMatching (GreedyWeightedMatching. g true))))
+
+(defn- vertex-cover-result [^VertexCoverAlgorithm$VertexCover cover]
+  {:vertices (set cover)
+   :weight (.getWeight cover)})
+
+(defn min-vertex-cover
+  "Exact minimum vertex cover, optionally using a vertex-to-weight map."
+  ([^Graph g]
+   (ensure-undirected g :min-vertex-cover)
+   (vertex-cover-result (.getVertexCover (RecursiveExactVCImpl. g))))
+  ([^Graph g weights]
+   (ensure-undirected g :min-vertex-cover)
+   (vertex-cover-result (.getVertexCover (RecursiveExactVCImpl. g weights)))))
+
+(defn greedy-vertex-cover
+  "Greedy vertex cover, optionally using a vertex-to-weight map."
+  ([^Graph g]
+   (ensure-undirected g :greedy-vertex-cover)
+   (vertex-cover-result (.getVertexCover (GreedyVCImpl. g))))
+  ([^Graph g weights]
+   (ensure-undirected g :greedy-vertex-cover)
+   (vertex-cover-result (.getVertexCover (GreedyVCImpl. g weights)))))
+
+(defn clarkson-two-approx-vertex-cover
+  "Clarkson 2-approximation vertex cover, optionally weighted."
+  ([^Graph g]
+   (ensure-undirected g :clarkson-two-approx-vertex-cover)
+   (vertex-cover-result (.getVertexCover (ClarksonTwoApproxVCImpl. g))))
+  ([^Graph g weights]
+   (ensure-undirected g :clarkson-two-approx-vertex-cover)
+   (vertex-cover-result (.getVertexCover (ClarksonTwoApproxVCImpl. g weights)))))
+
+(defn bar-yehuda-even-two-approx-vertex-cover
+  "Bar-Yehuda-Even 2-approximation vertex cover, optionally weighted."
+  ([^Graph g]
+   (ensure-undirected g :bar-yehuda-even-two-approx-vertex-cover)
+   (vertex-cover-result (.getVertexCover (BarYehudaEvenTwoApproxVCImpl. g))))
+  ([^Graph g weights]
+   (ensure-undirected g :bar-yehuda-even-two-approx-vertex-cover)
+   (vertex-cover-result
+    (.getVertexCover (BarYehudaEvenTwoApproxVCImpl. g weights)))))
+
+(defn edge-based-two-approx-vertex-cover
+  "Edge-based 2-approximation vertex cover."
+  [^Graph g]
+  (ensure-undirected g :edge-based-two-approx-vertex-cover)
+  (vertex-cover-result (.getVertexCover (EdgeBasedTwoApproxVCImpl. g))))
+
+(defn- tour-result [^GraphPath tour]
+  (when tour
+    {:tour (vec (.getVertexList tour))
+     :weight (.getWeight tour)}))
+
+(defn- simple-copy ^Graph [^Graph g]
+  (let [weighted? (.. g getType isWeighted)
+        ^Graph copy (-> (GraphTypeBuilder/undirected)
+                        (.allowingMultipleEdges false)
+                        (.allowingSelfLoops false)
+                        (.weighted weighted?)
+                        (.edgeClass (if weighted? DefaultWeightedEdge DefaultEdge))
+                        (.buildGraph))]
+    (doseq [v (.vertexSet g)]
+      (.addVertex copy v))
+    (doseq [e (.edgeSet g)]
+      (let [copied (.addEdge copy (.getEdgeSource g e) (.getEdgeTarget g e))]
+        (when weighted?
+          (.setEdgeWeight copy copied (.getEdgeWeight g e)))))
+    copy))
+
+(defn tsp-tour
+  "Hamiltonian tour as `{:tour [v ... v] :weight w}`. Methods are
+  `:nearest-neighbor` (default), `:held-karp`, `:christofides`, `:greedy`,
+  `:nearest-insertion`, `:random`, `:two-opt`, and `:palmer`."
+  ([^Graph g]
+   (tsp-tour g {}))
+  ([^Graph g {:keys [method] :or {method :nearest-neighbor}}]
+   (ensure-undirected g :tsp-tour)
+   (let [algorithm (case method
+                     :held-karp (HeldKarpTSP.)
+                     :nearest-neighbor (NearestNeighborHeuristicTSP.)
+                     :christofides (ChristofidesThreeHalvesApproxMetricTSP.)
+                     :greedy (GreedyHeuristicTSP.)
+                     :nearest-insertion (NearestInsertionHeuristicTSP.)
+                     :random (RandomTourTSP.)
+                     :two-opt (TwoOptHeuristicTSP.)
+                     :palmer (PalmerHamiltonianCycle.)
+                     (throw (ex-info "Unknown TSP method"
+                                     {:cljgrapht/error :unknown-algorithm
+                                      :cljgrapht/algorithm method})))
+         tour-graph (if (= method :palmer) (simple-copy g) g)]
+     (tour-result (.getTour algorithm tour-graph)))))
+
 (defn maximal-cliques
   "Seq of maximal cliques of undirected graph `g`, each as a vertex set
   (Bron-Kerbosch)."
   [^Graph g]
   (ensure-undirected g :maximal-cliques)
   (map set (iterator-seq (.iterator (BronKerboschCliqueFinder. g)))))
+
+(defn bron-kerbosch-maximal-cliques
+  "Seq of maximal cliques using the basic Bron-Kerbosch algorithm."
+  [^Graph g]
+  (maximal-cliques g))
+
+(defn pivot-maximal-cliques
+  "Seq of maximal cliques using pivoting Bron-Kerbosch."
+  [^Graph g]
+  (ensure-undirected g :pivot-maximal-cliques)
+  (map set (iterator-seq (.iterator (PivotBronKerboschCliqueFinder. g)))))
+
+(defn degeneracy-maximal-cliques
+  "Seq of maximal cliques using degeneracy-ordered Bron-Kerbosch."
+  [^Graph g]
+  (ensure-undirected g :degeneracy-maximal-cliques)
+  (map set (iterator-seq (.iterator (DegeneracyBronKerboschCliqueFinder. g)))))
+
+(defn chordal?
+  "True if the undirected graph is chordal."
+  [^Graph g]
+  (ensure-undirected g :chordal?)
+  (.isChordal (ChordalityInspector. g)))
+
+(defn perfect-elimination-order
+  "Perfect elimination order for a chordal graph, or nil when non-chordal."
+  [^Graph g]
+  (ensure-undirected g :perfect-elimination-order)
+  (let [inspector (ChordalityInspector. g)]
+    (when (.isChordal inspector)
+      (vec (.getPerfectEliminationOrder inspector)))))
+
+(defn chordal-maximum-clique
+  "Maximum clique as a vertex set, or nil when the graph is non-chordal."
+  [^Graph g]
+  (ensure-undirected g :chordal-maximum-clique)
+  (some-> (.getClique (ChordalGraphMaxCliqueFinder. g)) set))
+
+(defn chordal-coloring
+  "Optimal coloring of a chordal graph."
+  [^Graph g]
+  (ensure-undirected g :chordal-coloring)
+  (coloring-result (ChordalGraphColoring. g)))
+
+(defn chordal-maximum-independent-set
+  "Maximum independent vertex set of a chordal graph."
+  [^Graph g]
+  (ensure-undirected g :chordal-maximum-independent-set)
+  (some-> (.getIndependentSet (ChordalGraphIndependentSetFinder. g)) set))
+
+(defn chordal-minimum-vertex-cover
+  "Minimum vertex cover of a chordal graph, derived as the complement of a
+  maximum independent set."
+  [^Graph g]
+  (ensure-undirected g :chordal-minimum-vertex-cover)
+  (when-let [independent (chordal-maximum-independent-set g)]
+    (set (remove independent (.vertexSet g)))))
 
 (defn bipartite?
   "True if `g` is bipartite."
@@ -371,6 +862,37 @@
   [^Graph g]
   (set (filter #(zero? (.degreeOf g %)) (.vertexSet g))))
 
+(defn planar?
+  "True if the undirected graph is planar."
+  [^Graph g]
+  (ensure-undirected g :planar?)
+  (.isPlanar (BoyerMyrvoldPlanarityInspector. g)))
+
+(defn planar-embedding
+  "Planar rotation system as `{vertex [neighbor ...]}`; nil if nonplanar."
+  [^Graph g]
+  (ensure-undirected g :planar-embedding)
+  (let [inspector (BoyerMyrvoldPlanarityInspector. g)]
+    (when (.isPlanar inspector)
+      (let [embedding (.getEmbedding inspector)]
+        (into {}
+              (for [v (.vertexSet g)]
+                [v (mapv (fn [e]
+                           (let [u (.getEdgeSource g e)
+                                 w (.getEdgeTarget g e)]
+                             (if (= v u) w u)))
+                         (.getEdgesAround embedding v))]))))))
+
+(defn kuratowski-subdivision
+  "Kuratowski subdivision witness as vertex and edge sets; nil if planar."
+  [^Graph g]
+  (ensure-undirected g :kuratowski-subdivision)
+  (let [inspector (BoyerMyrvoldPlanarityInspector. g)]
+    (when-not (.isPlanar inspector)
+      (let [^Graph witness (.getKuratowskiSubdivision inspector)]
+        {:vertices (set (.vertexSet witness))
+         :edges (set (map #(edge-pair witness %) (.edgeSet witness)))}))))
+
 (defn isomorphic?
   "True if `g1` and `g2` are graph-isomorphic according to VF2. Rejects mixed
   directed/undirected graph pairs."
@@ -378,6 +900,37 @@
   (when (not= (directed? g1) (directed? g2))
     (throw (mixed-direction :isomorphic?)))
   (.isomorphismExists (VF2GraphIsomorphismInspector. g1 g2)))
+
+(defn subgraph-isomorphic?
+  "True if `subgraph` is isomorphic to a subgraph of `g`."
+  [^Graph g ^Graph subgraph]
+  (when (not= (directed? g) (directed? subgraph))
+    (throw (mixed-direction :subgraph-isomorphic?)))
+  (.isomorphismExists (VF2SubgraphIsomorphismInspector. g subgraph)))
+
+(defn tree-isomorphic?
+  "AHU tree-isomorphism predicate. The four-argument form fixes both roots."
+  ([^Graph tree1 ^Graph tree2]
+   (ensure-undirected tree1 :tree-isomorphic?)
+   (ensure-undirected tree2 :tree-isomorphic?)
+   (.isomorphismExists (AHUUnrootedTreeIsomorphismInspector. tree1 tree2)))
+  ([^Graph tree1 root1 ^Graph tree2 root2]
+   (ensure-undirected tree1 :tree-isomorphic?)
+   (ensure-undirected tree2 :tree-isomorphic?)
+   (.isomorphismExists
+    (AHURootedTreeIsomorphismInspector. tree1 root1 tree2 root2))))
+
+(defn color-refinement-isomorphic?
+  "True when color refinement proves `g1` and `g2` isomorphic."
+  [^Graph g1 ^Graph g2]
+  (when (not= (directed? g1) (directed? g2))
+    (throw (mixed-direction :color-refinement-isomorphic?)))
+  (.isomorphismExists (ColorRefinementIsomorphismInspector. g1 g2)))
+
+(defn tree-edit-distance
+  "Zhang-Shasha edit distance between two rooted ordered trees."
+  [^Graph tree1 root1 ^Graph tree2 root2]
+  (.getDistance (ZhangShashaTreeEditDistance. tree1 root1 tree2 root2)))
 
 (defn max-flow
   "Maximum `source`->`sink` flow in directed graph `g` as
@@ -404,6 +957,86 @@
      :source-partition (set (.getSourcePartition impl))
      :sink-partition (set (.getSinkPartition impl))}))
 
+(defn- maximum-flow-result [^Graph g algorithm source sink]
+  (ensure-directed g :max-flow)
+  (let [^MaximumFlowAlgorithm$MaximumFlow flow (.getMaximumFlow algorithm source sink)]
+    {:value (double (.getValue flow))
+     :flow (into {}
+                 (for [[e f] (.getFlowMap flow)
+                       :let [f (double f)]
+                       :when (not (zero? f))]
+                   [(edge-pair g e) f]))}))
+
+(defn edmonds-karp-max-flow
+  "Maximum flow using Edmonds-Karp."
+  [^Graph g source sink]
+  (maximum-flow-result g (EdmondsKarpMFImpl. g) source sink))
+
+(defn push-relabel-max-flow
+  "Maximum flow using push-relabel."
+  [^Graph g source sink]
+  (maximum-flow-result g (PushRelabelMFImpl. g) source sink))
+
+(defn dinic-max-flow
+  "Maximum flow using Dinic's algorithm."
+  [^Graph g source sink]
+  (maximum-flow-result g (DinicMFImpl. g) source sink))
+
+(defn min-cost-flow
+  "Minimum-cost flow for integer `:supplies` and `:capacities` maps.
+  Edge weights are costs. Optional `:lower-bounds` defaults to zero."
+  [^Graph g {:keys [supplies capacities lower-bounds]
+             :or {supplies {} capacities {} lower-bounds {}}}]
+  (ensure-directed g :min-cost-flow)
+  (let [pair #(edge-pair g %)
+        node-supply (reify Function
+                      (apply [_ v] (int (get supplies v 0))))
+        lower-bound (reify Function
+                      (apply [_ e] (int (get lower-bounds (pair e) 0))))
+        upper-bound (reify Function
+                      (apply [_ e]
+                        (int (get capacities (pair e)
+                                  CapacityScalingMinimumCostFlow/CAP_INF))))
+        cost (reify Function
+               (apply [_ e] (double (.getEdgeWeight g e))))
+        problem (MinimumCostFlowProblem$MinimumCostFlowProblemImpl.
+                 g node-supply upper-bound lower-bound cost)
+        ^MinimumCostFlowAlgorithm$MinimumCostFlow flow
+        (.getMinimumCostFlow (CapacityScalingMinimumCostFlow.) problem)]
+    {:cost (.getCost flow)
+     :flow (into {}
+                 (for [[e f] (.getFlowMap flow)
+                       :let [f (double f)]
+                       :when (not (zero? f))]
+                   [(pair e) f]))}))
+
+(defn gomory-hu-tree
+  "Gomory-Hu cut tree as weighted `[u v weight]` edges."
+  [^Graph g]
+  (ensure-undirected g :gomory-hu-tree)
+  (let [^Graph tree (.getGomoryHuTree (GusfieldGomoryHuCutTree. g))]
+    {:edges (set (for [e (.edgeSet tree)]
+                   [(.getEdgeSource tree e)
+                    (.getEdgeTarget tree e)
+                    (.getEdgeWeight tree e)]))}))
+
+(defn minimum-cut
+  "Global minimum cut of an undirected graph."
+  [^Graph g]
+  (ensure-undirected g :minimum-cut)
+  (let [cut (StoerWagnerMinimumCut. g)]
+    {:weight (.minCutWeight cut)
+     :partition (set (.minCut cut))}))
+
+(defn minimum-st-cut
+  "Minimum source-to-sink cut with source and sink partitions."
+  [^Graph g source sink]
+  (ensure-directed g :minimum-st-cut)
+  (let [impl (PushRelabelMFImpl. g)]
+    {:weight (.calculateMinCut impl source sink)
+     :source-partition (set (.getSourcePartition impl))
+     :sink-partition (set (.getSinkPartition impl))}))
+
 (defn coloring
   "Vertex coloring of `g` as `{:colors {vertex color-int, ...} :chromatic n}`.
   Options may include `:algorithm`, one of `:saturation` (default), `:greedy`,
@@ -417,6 +1050,8 @@
       :greedy (GreedyColoring. g)
       :largest-degree-first (LargestDegreeFirstColoring. g)
       :smallest-degree-last (SmallestDegreeLastColoring. g)
+      :random-greedy (RandomGreedyColoring. g)
+      :color-refinement (ColorRefinementAlgorithm. g)
       (throw (unknown-algorithm algorithm))))))
 
 (defn greedy-coloring
@@ -424,6 +1059,31 @@
   `{:colors {vertex color-int, ...} :chromatic n}`."
   [^Graph g]
   (coloring g {:algorithm :greedy}))
+
+(defn largest-degree-first-coloring
+  "Greedy coloring in descending degree order."
+  [^Graph g]
+  (coloring g {:algorithm :largest-degree-first}))
+
+(defn smallest-degree-last-coloring
+  "Greedy coloring in smallest-degree-last order."
+  [^Graph g]
+  (coloring g {:algorithm :smallest-degree-last}))
+
+(defn dsatur-coloring
+  "Saturation-degree (DSATUR) vertex coloring."
+  [^Graph g]
+  (coloring g {:algorithm :saturation}))
+
+(defn random-greedy-coloring
+  "Greedy coloring in randomized vertex order."
+  [^Graph g]
+  (coloring g {:algorithm :random-greedy}))
+
+(defn color-refinement
+  "Stable equitable vertex coloring produced by color refinement."
+  [^Graph g]
+  (coloring g {:algorithm :color-refinement}))
 
 (defn clustering-coefficient
   "Map of vertex -> local clustering coefficient."
@@ -434,6 +1094,27 @@
   "Global clustering coefficient of `g`."
   [^Graph g]
   (.getGlobalClusteringCoefficient (ClusteringCoefficient. g)))
+
+(defn clustering
+  "Partition vertices into clusters. Methods are `:label-propagation` (default),
+  `:girvan-newman`, and `:k-spanning-tree`; the latter two require `:k`."
+  ([^Graph g]
+   (clustering g {}))
+  ([^Graph g {:keys [method k] :or {method :label-propagation}}]
+   (ensure-undirected g :clustering)
+   (when (and (#{:girvan-newman :k-spanning-tree} method) (nil? k))
+     (throw (ex-info "Clustering method requires :k"
+                     {:cljgrapht/error :missing-option
+                      :cljgrapht/option :k
+                      :cljgrapht/algorithm method})))
+   (let [algorithm (case method
+                     :label-propagation (LabelPropagationClustering. g)
+                     :girvan-newman (GirvanNewmanClustering. g (int k))
+                     :k-spanning-tree (KSpanningTreeClustering. g (int k))
+                     (throw (ex-info "Unknown clustering method"
+                                     {:cljgrapht/error :unknown-algorithm
+                                      :cljgrapht/algorithm method})))]
+     (mapv set (.getClusters (.getClustering algorithm))))))
 
 (defn coreness
   "Map of vertex -> core number."
@@ -454,3 +1135,91 @@
   "Map of vertex -> PageRank score."
   [^Graph g]
   (into {} (.getScores (PageRank. g))))
+
+(defn harmonic-centrality
+  "Map of vertex -> harmonic centrality score."
+  [^Graph g]
+  (into {} (.getScores (HarmonicCentrality. g))))
+
+(defn eigenvector-centrality
+  "Map of vertex -> eigenvector centrality score."
+  [^Graph g]
+  (into {} (.getScores (EigenvectorCentrality. g))))
+
+(defn alpha-centrality
+  "Map of vertex -> alpha-attenuated (Katz) centrality score. `alpha` defaults
+  to JGraphT's damping factor."
+  ([^Graph g]
+   (into {} (.getScores (KatzCentrality. g))))
+  ([^Graph g alpha]
+   (into {} (.getScores (KatzCentrality. g (double alpha))))))
+
+(defn diameter
+  "Maximum shortest-path distance between any two vertices."
+  [^Graph g]
+  (.getDiameter (GraphMeasurer. g)))
+
+(defn radius
+  "Minimum vertex eccentricity."
+  [^Graph g]
+  (.getRadius (GraphMeasurer. g)))
+
+(defn graph-center
+  "Set of vertices whose eccentricity equals the graph radius."
+  [^Graph g]
+  (set (.getGraphCenter (GraphMeasurer. g))))
+
+(defn graph-periphery
+  "Set of vertices whose eccentricity equals the graph diameter."
+  [^Graph g]
+  (set (.getGraphPeriphery (GraphMeasurer. g))))
+
+(defn pseudo-periphery
+  "Set of vertices whose neighbors have no greater eccentricity."
+  [^Graph g]
+  (set (.getGraphPseudoPeriphery (GraphMeasurer. g))))
+
+(defn vertex-eccentricities
+  "Map of vertex -> maximum shortest-path distance to another vertex."
+  [^Graph g]
+  (into {} (.getVertexEccentricityMap (GraphMeasurer. g))))
+
+(defn- girth-from [^Graph g root]
+  (loop [queue (conj clojure.lang.PersistentQueue/EMPTY root)
+         distances {root 0}
+         parent-edges {}
+         best Long/MAX_VALUE]
+    (if (empty? queue)
+      best
+      (let [v (peek queue)
+            queue (pop queue)
+            distance (distances v)
+            [queue distances parent-edges best]
+            (reduce
+             (fn [[q ds ps shortest] e]
+               (let [source (.getEdgeSource g e)
+                     target (.getEdgeTarget g e)
+                     neighbor (if (= v source) target source)]
+                 (cond
+                   (not (contains? ds neighbor))
+                   [(conj q neighbor)
+                    (assoc ds neighbor (inc distance))
+                    (assoc ps neighbor e)
+                    shortest]
+
+                   (not= e (get ps v))
+                   [q ds ps (min shortest (inc (+ distance (ds neighbor))))]
+
+                   :else [q ds ps shortest])))
+             [queue distances parent-edges best]
+             (.edgesOf g v))]
+        (recur queue distances parent-edges best)))))
+
+(defn girth
+  "Length of the shortest cycle in an undirected graph, or nil when acyclic."
+  [^Graph g]
+  (ensure-undirected g :girth)
+  (let [length (reduce min Long/MAX_VALUE
+                       (map #(girth-from g %) (.vertexSet g)))]
+    (when-not (= Long/MAX_VALUE length)
+      length)))
