@@ -28,9 +28,13 @@
                                          GabowStrongConnectivityInspector
                                          KosarajuStrongConnectivityInspector)
            (org.jgrapht.alg.cycle CycleDetector
+                                  ChordalityInspector
                                   DirectedSimpleCycles
                                   JohnsonSimpleCycles)
-           (org.jgrapht.alg.clique BronKerboschCliqueFinder)
+           (org.jgrapht.alg.clique BronKerboschCliqueFinder
+                                   ChordalGraphMaxCliqueFinder
+                                   DegeneracyBronKerboschCliqueFinder
+                                   PivotBronKerboschCliqueFinder)
            (org.jgrapht.alg.spanning PrimMinimumSpanningTree)
            (org.jgrapht.alg.interfaces MatchingAlgorithm$Matching
                                        MaximumFlowAlgorithm$MaximumFlow
@@ -47,7 +51,8 @@
                                      EsauWilliamsCapacitatedMinimumSpanningTree
                                      GreedyMultiplicativeSpanner
                                      KruskalMinimumSpanningTree)
-           (org.jgrapht.alg.color GreedyColoring
+           (org.jgrapht.alg.color ChordalGraphColoring
+                                  GreedyColoring
                                   ColorRefinementAlgorithm
                                   LargestDegreeFirstColoring
                                   RandomGreedyColoring
@@ -62,6 +67,7 @@
                                     KatzCentrality
                                     PageRank)
            (org.jgrapht.alg.partition BipartitePartitioning)
+           (org.jgrapht.alg.independentset ChordalGraphIndependentSetFinder)
            (org.jgrapht.alg.isomorphism VF2GraphIsomorphismInspector)
            (org.jgrapht.traverse BreadthFirstIterator
                                  DepthFirstIterator
@@ -452,6 +458,63 @@
   [^Graph g]
   (ensure-undirected g :maximal-cliques)
   (map set (iterator-seq (.iterator (BronKerboschCliqueFinder. g)))))
+
+(defn bron-kerbosch-maximal-cliques
+  "Seq of maximal cliques using the basic Bron-Kerbosch algorithm."
+  [^Graph g]
+  (maximal-cliques g))
+
+(defn pivot-maximal-cliques
+  "Seq of maximal cliques using pivoting Bron-Kerbosch."
+  [^Graph g]
+  (ensure-undirected g :pivot-maximal-cliques)
+  (map set (iterator-seq (.iterator (PivotBronKerboschCliqueFinder. g)))))
+
+(defn degeneracy-maximal-cliques
+  "Seq of maximal cliques using degeneracy-ordered Bron-Kerbosch."
+  [^Graph g]
+  (ensure-undirected g :degeneracy-maximal-cliques)
+  (map set (iterator-seq (.iterator (DegeneracyBronKerboschCliqueFinder. g)))))
+
+(defn chordal?
+  "True if the undirected graph is chordal."
+  [^Graph g]
+  (ensure-undirected g :chordal?)
+  (.isChordal (ChordalityInspector. g)))
+
+(defn perfect-elimination-order
+  "Perfect elimination order for a chordal graph, or nil when non-chordal."
+  [^Graph g]
+  (ensure-undirected g :perfect-elimination-order)
+  (let [inspector (ChordalityInspector. g)]
+    (when (.isChordal inspector)
+      (vec (.getPerfectEliminationOrder inspector)))))
+
+(defn chordal-maximum-clique
+  "Maximum clique as a vertex set, or nil when the graph is non-chordal."
+  [^Graph g]
+  (ensure-undirected g :chordal-maximum-clique)
+  (some-> (.getClique (ChordalGraphMaxCliqueFinder. g)) set))
+
+(defn chordal-coloring
+  "Optimal coloring of a chordal graph."
+  [^Graph g]
+  (ensure-undirected g :chordal-coloring)
+  (coloring-result (ChordalGraphColoring. g)))
+
+(defn chordal-maximum-independent-set
+  "Maximum independent vertex set of a chordal graph."
+  [^Graph g]
+  (ensure-undirected g :chordal-maximum-independent-set)
+  (some-> (.getIndependentSet (ChordalGraphIndependentSetFinder. g)) set))
+
+(defn chordal-minimum-vertex-cover
+  "Minimum vertex cover of a chordal graph, derived as the complement of a
+  maximum independent set."
+  [^Graph g]
+  (ensure-undirected g :chordal-minimum-vertex-cover)
+  (when-let [independent (chordal-maximum-independent-set g)]
+    (set (remove independent (.vertexSet g)))))
 
 (defn bipartite?
   "True if `g` is bipartite."

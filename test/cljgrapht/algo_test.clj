@@ -100,6 +100,20 @@
       (is (= {:a 2 :b 2 :c 2 :d 1}
              (a/coreness gr))))))
 
+(deftest clique-and-chordal-variants
+  (let [gr (g/graph [[:a :b] [:a :c] [:b :c] [:c :d]])
+        expected #{#{:a :b :c} #{:c :d}}]
+    (is (= expected (set (a/bron-kerbosch-maximal-cliques gr))))
+    (is (= expected (set (a/pivot-maximal-cliques gr))))
+    (is (= expected (set (a/degeneracy-maximal-cliques gr))))
+    (is (true? (a/chordal? gr)))
+    (is (= #{:a :b :c :d} (set (a/perfect-elimination-order gr))))
+    (is (= #{:a :b :c} (a/chordal-maximum-clique gr)))
+    (is (= 3 (:chromatic (a/chordal-coloring gr))))
+    (is (= 2 (count (a/chordal-maximum-independent-set gr))))
+    (is (= 2 (count (a/chordal-minimum-vertex-cover gr)))))
+  (is (false? (a/chordal? (g/graph [[:a :b] [:b :c] [:c :d] [:d :a]])))))
+
 (deftest graph-predicates-and-shape
   (testing "bipartite checks and partitions"
     (let [gr (g/graph [[:a :x] [:a :y] [:b :y]])]
