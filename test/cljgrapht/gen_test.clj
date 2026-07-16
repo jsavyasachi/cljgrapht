@@ -184,3 +184,41 @@
              (some->> gr g/edges (map #(nth % 2)) set)))
       (is (every? (fn [[u v _]] (not= (< u 2) (< v 2)))
                   (some-> gr g/edges))))))
+
+(deftest named-graph-catalog
+  (let [expected-names
+        #{:doyle :petersen :durer :dodecahedron :desargues :nauru
+          :mobius-kantor :bull :butterfly :claw :bucky-ball :clebsch
+          :grotzsch :bidiakis-cube :blanusa-first-snark
+          :blanusa-second-snark :double-star-snark :brinkmann :gosset
+          :chvatal :kittell :coxeter :diamond :ellingham-horton-54
+          :ellingham-horton-78 :errera :folkman :franklin :frucht
+          :goldner-harary :heawood :herschel :hoffman :krackhardt-kite
+          :klein-3-regular :klein-7-regular :moser-spindle :pappus
+          :poussin :schlafli :tietze :thomsen :tutte
+          :zachary-karate-club}
+        supported gen/supported-named-graphs]
+    (is (= expected-names (set supported)))
+    (doseq [name supported]
+      (let [gr (gen/named-graph name)]
+        (is (pos? (some-> gr g/vertices count)) (str name " has vertices"))
+        (is (pos? (some-> gr g/edges count)) (str name " has edges"))
+        (is (every? integer? (some-> gr g/vertices))
+            (str name " uses integer vertices"))))
+    (testing "representative named graph orders and sizes"
+      (doseq [[name expected]
+              {:petersen [10 15]
+               :bull [5 5]
+               :butterfly [5 6]
+               :chvatal [12 24]
+               :diamond [4 5]
+               :franklin [12 18]
+               :frucht [12 18]
+               :goldner-harary [11 27]
+               :grotzsch [11 20]
+               :moser-spindle [7 11]
+               :bucky-ball [60 90]
+               :zachary-karate-club [34 78]}]
+        (let [gr (gen/named-graph name)]
+          (is (= expected [(some-> gr g/vertices count)
+                           (some-> gr g/edges count)])))))))

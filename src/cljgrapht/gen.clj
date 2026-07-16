@@ -23,6 +23,7 @@
                                   KleinbergSmallWorldGraphGenerator
                                   LinearGraphGenerator
                                   LinearizedChordDiagramGraphGenerator
+                                  NamedGraphGenerator
                                   PlantedPartitionGraphGenerator
                                   PruferTreeGenerator
                                   RandomRegularGraphGenerator
@@ -326,6 +327,66 @@
                      (.second second-partition)
                      (.weights (double-matrix weights)))]
      (generate generator {:directed? directed? :weighted? true}))))
+
+(def ^:private named-graph-methods
+  {:doyle "generateDoyleGraph"
+   :petersen "generatePetersenGraph"
+   :durer "generateDürerGraph"
+   :dodecahedron "generateDodecahedronGraph"
+   :desargues "generateDesarguesGraph"
+   :nauru "generateNauruGraph"
+   :mobius-kantor "generateMöbiusKantorGraph"
+   :bull "generateBullGraph"
+   :butterfly "generateButterflyGraph"
+   :claw "generateClawGraph"
+   :bucky-ball "generateBuckyBallGraph"
+   :clebsch "generateClebschGraph"
+   :grotzsch "generateGrötzschGraph"
+   :bidiakis-cube "generateBidiakisCubeGraph"
+   :blanusa-first-snark "generateBlanusaFirstSnarkGraph"
+   :blanusa-second-snark "generateBlanusaSecondSnarkGraph"
+   :double-star-snark "generateDoubleStarSnarkGraph"
+   :brinkmann "generateBrinkmannGraph"
+   :gosset "generateGossetGraph"
+   :chvatal "generateChvatalGraph"
+   :kittell "generateKittellGraph"
+   :coxeter "generateCoxeterGraph"
+   :diamond "generateDiamondGraph"
+   :ellingham-horton-54 "generateEllinghamHorton54Graph"
+   :ellingham-horton-78 "generateEllinghamHorton78Graph"
+   :errera "generateErreraGraph"
+   :folkman "generateFolkmanGraph"
+   :franklin "generateFranklinGraph"
+   :frucht "generateFruchtGraph"
+   :goldner-harary "generateGoldnerHararyGraph"
+   :heawood "generateHeawoodGraph"
+   :herschel "generateHerschelGraph"
+   :hoffman "generateHoffmanGraph"
+   :krackhardt-kite "generateKrackhardtKiteGraph"
+   :klein-3-regular "generateKlein3RegularGraph"
+   :klein-7-regular "generateKlein7RegularGraph"
+   :moser-spindle "generateMoserSpindleGraph"
+   :pappus "generatePappusGraph"
+   :poussin "generatePoussinGraph"
+   :schlafli "generateSchläfliGraph"
+   :tietze "generateTietzeGraph"
+   :thomsen "generateThomsenGraph"
+   :tutte "generateTutteGraph"
+   :zachary-karate-club "generateZacharyKarateClubGraph"})
+
+(def supported-named-graphs
+  "Sorted set of keywords accepted by `named-graph`."
+  (into (sorted-set) (keys named-graph-methods)))
+
+(defn named-graph
+  "A new named graph selected from `supported-named-graphs`."
+  ^Graph [name]
+  (if-let [method (get named-graph-methods name)]
+    (let [g (graph-with-supplier)]
+      (clojure.lang.Reflector/invokeInstanceMethod
+       (NamedGraphGenerator.) method (object-array [g]))
+      g)
+    (throw (IllegalArgumentException. (str "Unknown named graph: " name)))))
 
 (defn watts-strogatz-graph
   "A new undirected Watts-Strogatz graph with n vertices, degree k, and rewiring p."
