@@ -161,3 +161,26 @@
       (is (true? (some-> a .getType .isAllowingMultipleEdges)))
       (is (= (some-> a g/edges frequencies)
              (some-> b g/edges frequencies))))))
+
+(deftest weighted-matrix-generators
+  (testing "weighted directed matrix graph"
+    (let [gr (gen/weighted-matrix-graph
+              [[0.0 1.0 2.0]
+               [3.0 0.0 4.0]
+               [5.0 6.0 0.0]])]
+      (is (true? (some-> gr .getType .isDirected)))
+      (is (= #{0 1 2} (some-> gr g/vertices)))
+      (is (= #{[0 1 1.0] [0 2 2.0]
+               [1 0 3.0] [1 2 4.0]
+               [2 0 5.0] [2 1 6.0]}
+             (some-> gr g/edges set)))))
+  (testing "weighted bipartite matrix graph"
+    (let [gr (gen/weighted-bipartite-matrix-graph
+              2 3 [[1.0 2.0 3.0]
+                   [4.0 5.0 6.0]])]
+      (is (= (set (range 5)) (some-> gr g/vertices)))
+      (is (= 6 (some-> gr g/edges count)))
+      (is (= #{1.0 2.0 3.0 4.0 5.0 6.0}
+             (some->> gr g/edges (map #(nth % 2)) set)))
+      (is (every? (fn [[u v _]] (not= (< u 2) (< v 2)))
+                  (some-> gr g/edges))))))

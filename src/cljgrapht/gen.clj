@@ -1,7 +1,7 @@
 (ns cljgrapht.gen
   "Graph generators returning new `cljgrapht.core` graphs."
   (:require [cljgrapht.core :as core])
-  (:import (java.util HashMap Random)
+  (:import (java.util ArrayList HashMap Random)
            (java.util.concurrent.atomic AtomicInteger)
            (java.util.function Supplier)
            (org.jgrapht Graph)
@@ -28,6 +28,8 @@
                                   RandomRegularGraphGenerator
                                   RingGraphGenerator
                                   ScaleFreeGraphGenerator
+                                  SimpleWeightedBipartiteGraphMatrixGenerator
+                                  SimpleWeightedGraphMatrixGenerator
                                   StarGraphGenerator
                                   WattsStrogatzGraphGenerator
                                   WheelGraphGenerator
@@ -72,6 +74,9 @@
    (generate generator {}))
   (^Graph [^GraphGenerator generator opts]
    (generate-into generator (graph-with-supplier opts))))
+
+(defn- double-matrix [rows]
+  (into-array (class (double-array 0)) (map double-array rows)))
 
 (defn complete-graph
   "A new undirected complete graph with integer vertices 0..n-1."
@@ -296,6 +301,31 @@
                       (int n) (int m) (long seed))
                      (LinearizedChordDiagramGraphGenerator. (int n) (int m)))]
      (generate generator {:multiple-edges? true}))))
+
+(defn weighted-matrix-graph
+  "A new weighted digraph from a square adjacency weight matrix."
+  ^Graph [weights]
+  (let [vertices (ArrayList. ^java.util.Collection
+                             (mapv int (range (count weights))))
+        generator (doto (SimpleWeightedGraphMatrixGenerator.)
+                    (.vertices vertices)
+                    (.weights (double-matrix weights)))]
+    (generate generator {:directed? true :weighted? true})))
+
+(defn weighted-bipartite-matrix-graph
+  "A new weighted bipartite graph from partition sizes and a weight matrix."
+  (^Graph [n1 n2 weights]
+   (weighted-bipartite-matrix-graph n1 n2 weights {}))
+  (^Graph [n1 n2 weights {:keys [directed?]}]
+   (let [first-partition (ArrayList. ^java.util.Collection
+                                     (mapv int (range n1)))
+         second-partition (ArrayList. ^java.util.Collection
+                                      (mapv int (range n1 (+ n1 n2))))
+         generator (doto (SimpleWeightedBipartiteGraphMatrixGenerator.)
+                     (.first first-partition)
+                     (.second second-partition)
+                     (.weights (double-matrix weights)))]
+     (generate generator {:directed? directed? :weighted? true}))))
 
 (defn watts-strogatz-graph
   "A new undirected Watts-Strogatz graph with n vertices, degree k, and rewiring p."
