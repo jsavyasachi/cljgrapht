@@ -29,6 +29,32 @@
            (a/link-prediction-score gr :a :d {:algorithm :jaccard})))
     (is (= 1.0 (get (a/predict-links gr [[:a :d]]) [:a :d])))))
 
+(defn- close?
+  "True when `a` and `b` are within 1e-9 of each other."
+  [a b]
+  (< (Math/abs (double (- a b))) 1e-9))
+
+(deftest link-prediction-indices
+  ;; Neighbours: a{b c}, b{a c d}, c{a b}, d{b}. For the pair (:a :d) the sole
+  ;; common neighbour is b, so every index has a hand-computable value.
+  (let [gr (g/graph [[:a :b] [:a :c] [:b :c] [:b :d]])]
+    (testing "each convenience fn matches its closed-form value"
+      (is (close? (/ 1.0 (Math/sqrt 2.0)) (a/salton-index gr :a :d)))          ; |CN|/sqrt(k_a*k_d)
+      (is (close? (/ 2.0 3.0) (a/sorensen-index gr :a :d)))                     ; 2|CN|/(k_a+k_d)
+      (is (close? (/ 1.0 3.0) (a/resource-allocation-index gr :a :d)))         ; sum 1/k_z, z in CN
+      (is (close? 1.0 (a/hub-promoted-index gr :a :d)))                        ; |CN|/min(k_a,k_d)
+      (is (close? 0.5 (a/hub-depressed-index gr :a :d)))                       ; |CN|/max(k_a,k_d)
+      (is (close? 2.0 (a/preferential-attachment-score gr :a :d))))           ; k_a*k_d
+    (testing "each convenience fn delegates to the matching :algorithm dispatch"
+      (doseq [[f alg] [[a/salton-index :salton]
+                       [a/sorensen-index :sorensen]
+                       [a/resource-allocation-index :resource-allocation]
+                       [a/hub-promoted-index :hub-promoted]
+                       [a/hub-depressed-index :hub-depressed]
+                       [a/preferential-attachment-score :preferential-attachment]]]
+        (is (= (f gr :a :d)
+               (a/link-prediction-score gr :a :d {:algorithm alg})))))))
+
 (deftest lowest-common-ancestor
   (let [gr (g/digraph [[:root :left] [:root :right] [:left :leaf]])]
     (is (= :left (a/lca gr :leaf :left)))
