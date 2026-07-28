@@ -37,6 +37,13 @@
     (is (thrown-with-msg? clojure.lang.ExceptionInfo #":root"
                           (a/lca gr :leaf :right {:algorithm :tarjan})))))
 
+(deftest steiner-tree
+  (let [gr (g/weighted-graph [[:a :b 1.0] [:b :c 2.0] [:c :d 1.0] [:a :d 10.0]])
+        result (a/steiner-tree gr #{:a :d})]
+    (is (= #{#{:a :b} #{:b :c} #{:c :d}}
+           (set (map set (:edges result)))))
+    (is (= 4.0 (:weight result)))))
+
 (deftest shortest-path-weighted
   (let [gr (g/weighted-digraph [[:a :b 1.0] [:a :c 4.0] [:b :c 1.0] [:c :d 1.0]])]
     (testing "picks the cheaper multi-hop route over the direct expensive edge"

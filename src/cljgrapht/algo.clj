@@ -29,6 +29,7 @@
            (org.jgrapht.alg.interfaces AStarAdmissibleHeuristic
                                        LinkPredictionAlgorithm
                                        LowestCommonAncestorAlgorithm
+                                       SteinerTreeAlgorithm$SteinerTree
                                        PartitioningAlgorithm$Partitioning
                                        ShortestPathAlgorithm$SingleSourcePaths)
            (org.jgrapht.alg.connectivity ConnectivityInspector
@@ -49,6 +50,7 @@
                                    DegeneracyBronKerboschCliqueFinder
                                    PivotBronKerboschCliqueFinder)
            (org.jgrapht.alg.spanning PrimMinimumSpanningTree)
+           (org.jgrapht.alg.steiner KouMarkowskyBermanAlgorithm)
            (org.jgrapht.alg.interfaces MatchingAlgorithm$Matching
                                        MaximumFlowAlgorithm$MaximumFlow
                                        MinimumCostFlowAlgorithm$MinimumCostFlow
@@ -246,6 +248,14 @@
   ([^Graph g a b] (lca g a b {}))
   ([^Graph g a b opts]
    (.getLCA (lca-algorithm g (:algorithm opts :naive) opts) a b)))
+
+(defn steiner-tree
+  "Approximate weighted Steiner tree spanning `terminals`."
+  [^Graph g terminals]
+  (let [^SteinerTreeAlgorithm$SteinerTree tree
+        (.getSteinerTree (KouMarkowskyBermanAlgorithm. g) terminals)]
+    {:edges (set (map #(edge-pair g %) (.getEdges tree)))
+     :weight (.getWeight tree)}))
 
 (defn lca-set
   "Set of lowest common ancestors, possibly empty."
