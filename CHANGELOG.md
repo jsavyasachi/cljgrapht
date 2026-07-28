@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. This change log follows
 the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [1.1.0] - 2026-07-27
+
+### Added
+- Link prediction algorithms and batch link scoring.
+- Lowest common ancestor algorithms with naive and rooted implementations.
+- Approximate weighted Steiner tree calculation.
+- Line graph conversion with optional edge weighting.
+- Goldberg maximum-density subgraph calculation.
+
 ## [1.0.0] - 2026-07-16
 
 ### Added

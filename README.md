@@ -42,13 +42,13 @@ Requires **JDK 11+** (JGraphT 1.5.x).
 tools.deps (`deps.edn`):
 
 ```clojure
-net.clojars.savya/cljgrapht {:mvn/version "1.0.0"}
+net.clojars.savya/cljgrapht {:mvn/version "1.1.0"}
 ```
 
 Leiningen (`project.clj`):
 
 ```clojure
-[net.clojars.savya/cljgrapht "1.0.0"]
+[net.clojars.savya/cljgrapht "1.1.0"]
 ```
 
 Run tests with `clojure -M:test`. Build a jar with `clojure -T:build jar` and
@@ -99,6 +99,12 @@ deploy to Clojars with `clojure -T:build deploy`.
 - Flow: `max-flow`, `min-cut` (push-relabel; edge weights are capacities)
 - Coloring: `coloring` (DSatur default; `:greedy`, `:largest-degree-first`,
   `:smallest-degree-last` via `:algorithm`), `greedy-coloring`
+- Link prediction: eight standard predictors via `link-prediction-score` and
+  `predict-links`
+- Lowest common ancestor: `lca` and `lca-set` with naive and rooted variants
+- Steiner trees: approximate weighted `steiner-tree`
+- Line graphs: `line-graph`, including optional edge-weight conversion
+- Dense subgraphs: `maximum-density-subgraph` with caller-provided sentinels
 - Centrality: `betweenness-centrality`, `closeness-centrality`, `pagerank`
 - Graph shape and scoring: `maximal-cliques`, `clustering-coefficient`,
   `global-clustering-coefficient`, `coreness`, `density`,
