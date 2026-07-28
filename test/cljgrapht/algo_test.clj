@@ -22,6 +22,13 @@
       (catch clojure.lang.ExceptionInfo e
         (is (= :unknown-vertex (:cljgrapht/error (ex-data e))))))))
 
+(deftest link-prediction
+  (let [gr (g/graph [[:a :b] [:a :c] [:b :c] [:b :d]])]
+    (is (= 1.0 (a/common-neighbors-score gr :a :d)))
+    (is (= (a/jaccard-coefficient gr :a :d)
+           (a/link-prediction-score gr :a :d {:algorithm :jaccard})))
+    (is (= 1.0 (get (a/predict-links gr [[:a :d]]) [:a :d])))))
+
 (deftest shortest-path-weighted
   (let [gr (g/weighted-digraph [[:a :b 1.0] [:a :c 4.0] [:b :c 1.0] [:c :d 1.0]])]
     (testing "picks the cheaper multi-hop route over the direct expensive edge"

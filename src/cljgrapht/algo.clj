@@ -7,9 +7,9 @@
   `strongly-connected-components`, `topological-sort`, and `cycle?` are for
   directed graphs."
   (:require [cljgrapht.core :as core])
-  (:import (java.util Collection HashSet)
+  (:import (java.util ArrayList Collection HashSet)
            (java.util.concurrent Executors ThreadPoolExecutor)
-           (java.util.function Function Supplier)
+           (java.util.function BiFunction Function Supplier)
            (org.jgrapht Graph GraphPath GraphTests)
            (org.jgrapht.graph DefaultEdge DefaultWeightedEdge SimpleDirectedGraph)
            (org.jgrapht.graph.builder GraphTypeBuilder)
@@ -27,6 +27,7 @@
                                          SuurballeKDisjointShortestPaths
                                          YenKShortestPath)
            (org.jgrapht.alg.interfaces AStarAdmissibleHeuristic
+                                       LinkPredictionAlgorithm
                                        PartitioningAlgorithm$Partitioning
                                        ShortestPathAlgorithm$SingleSourcePaths)
            (org.jgrapht.alg.connectivity ConnectivityInspector
@@ -107,6 +108,14 @@
                                     PageRank)
            (org.jgrapht.alg.partition BipartitePartitioning)
            (org.jgrapht.alg.independentset ChordalGraphIndependentSetFinder)
+           (org.jgrapht.alg.linkprediction CommonNeighborsLinkPrediction
+                                          HubDepressedIndexLinkPrediction
+                                          HubPromotedIndexLinkPrediction
+                                          JaccardCoefficientLinkPrediction
+                                          PreferentialAttachmentLinkPrediction
+                                          ResourceAllocationIndexLinkPrediction
+                                          SaltonIndexLinkPrediction
+                                          SorensenIndexLinkPrediction)
            (org.jgrapht.alg.isomorphism AHURootedTreeIsomorphismInspector
                                           AHUUnrootedTreeIsomorphismInspector
                                           ColorRefinementIsomorphismInspector
@@ -115,9 +124,11 @@
            (org.jgrapht.alg.similarity ZhangShashaTreeEditDistance)
            (org.jgrapht.alg.planar BoyerMyrvoldPlanarityInspector)
            (org.jgrapht.alg.decomposition DulmageMendelsohnDecomposition)
+           (org.jgrapht.alg.util Pair Triple)
            (org.jgrapht.traverse BreadthFirstIterator
                                  DepthFirstIterator
                                  TopologicalOrderIterator)))
+
 
 (defn- directed? [^Graph g]
   (.. g getType isDirected))
@@ -167,6 +178,58 @@
 (defn- ensure-vertex [^Graph g operation vertex]
   (when-not (.containsVertex g vertex)
     (throw (unknown-vertex operation vertex))))
+
+(defn- link-prediction-algorithm ^LinkPredictionAlgorithm
+  [^Graph g algorithm]
+  (case algorithm
+    :common-neighbors (CommonNeighborsLinkPrediction. g)
+    :jaccard (JaccardCoefficientLinkPrediction. g)
+    :salton (SaltonIndexLinkPrediction. g)
+    :sorensen (SorensenIndexLinkPrediction. g)
+    :resource-allocation (ResourceAllocationIndexLinkPrediction. g)
+    :hub-promoted (HubPromotedIndexLinkPrediction. g)
+    :hub-depressed (HubDepressedIndexLinkPrediction. g)
+    :preferential-attachment (PreferentialAttachmentLinkPrediction. g)
+    (throw (ex-info "Unknown link prediction algorithm"
+                    {:cljgrapht/error :unknown-algorithm
+                     :cljgrapht/algorithm algorithm}))))
+
+(defn link-prediction-score
+  "Predict a link score between `u` and `v`."
+  [^Graph g u v {:keys [algorithm] :or {algorithm :common-neighbors}}]
+  (.predict (link-prediction-algorithm g algorithm) u v))
+
+(defn predict-links
+  "Predict scores for `[u v]` pairs as a map."
+  (^clojure.lang.IPersistentMap [^Graph g pairs]
+   (predict-links g pairs {}))
+  (^clojure.lang.IPersistentMap [^Graph g pairs {:keys [algorithm]
+                                                :or {algorithm :common-neighbors}}]
+   (let [^LinkPredictionAlgorithm predictor (link-prediction-algorithm g algorithm)
+         ^ArrayList requests (ArrayList.)]
+     (doseq [[u v] pairs]
+       (.add requests (Pair/of u v)))
+     (into {}
+           (map (fn [^Triple result]
+                  [[(.getFirst result) (.getSecond result)] (.getThird result)])
+                (.predict predictor requests))))))
+
+(defn common-neighbors-score [^Graph g u v]
+  (link-prediction-score g u v {:algorithm :common-neighbors}))
+(defn jaccard-coefficient [^Graph g u v]
+  (link-prediction-score g u v {:algorithm :jaccard}))
+(defn salton-index [^Graph g u v]
+  (link-prediction-score g u v {:algorithm :salton}))
+(defn sorensen-index [^Graph g u v]
+  (link-prediction-score g u v {:algorithm :sorensen}))
+(defn resource-allocation-index [^Graph g u v]
+  (link-prediction-score g u v {:algorithm :resource-allocation}))
+(defn hub-promoted-index [^Graph g u v]
+  (link-prediction-score g u v {:algorithm :hub-promoted}))
+(defn hub-depressed-index [^Graph g u v]
+  (link-prediction-score g u v {:algorithm :hub-depressed}))
+(defn preferential-attachment-score [^Graph g u v]
+  (link-prediction-score g u v {:algorithm :preferential-attachment}))
 
 (defn- path-result [^GraphPath p]
   (when p
