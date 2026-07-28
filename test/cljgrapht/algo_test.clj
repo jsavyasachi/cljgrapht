@@ -44,6 +44,15 @@
            (set (map set (:edges result)))))
     (is (= 4.0 (:weight result)))))
 
+(deftest line-graph
+  (let [gr (g/graph [[:a :b] [:b :c]])
+        lg (a/line-graph gr)
+        edges (vec (.edgeSet gr))]
+    (is (= 2 (count (.vertexSet lg))))
+    (is (= 1 (count (.edgeSet lg))))
+    (is (or (.containsEdge lg (first edges) (second edges))
+            (.containsEdge lg (second edges) (first edges))))))
+
 (deftest shortest-path-weighted
   (let [gr (g/weighted-digraph [[:a :b 1.0] [:a :c 4.0] [:b :c 1.0] [:c :d 1.0]])]
     (testing "picks the cheaper multi-hop route over the direct expensive edge"

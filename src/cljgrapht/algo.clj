@@ -124,6 +124,7 @@
                                HeavyPathLCAFinder
                                NaiveLCAFinder
                                TarjanLCAFinder)
+           (org.jgrapht.alg.transform LineGraphConverter)
            (org.jgrapht.alg.isomorphism AHURootedTreeIsomorphismInspector
                                           AHUUnrootedTreeIsomorphismInspector
                                           ColorRefinementIsomorphismInspector
@@ -256,6 +257,24 @@
         (.getSteinerTree (KouMarkowskyBermanAlgorithm. g) terminals)]
     {:edges (set (map #(edge-pair g %) (.getEdges tree)))
      :weight (.getWeight tree)}))
+
+(defn line-graph
+  "Return the line graph of `g`. With `weight-fn`, produce weighted line edges."
+  ([^Graph g]
+   (line-graph g nil))
+  ([^Graph g weight-fn]
+   (let [weighted? (some? weight-fn)
+         ^Graph target (core/make-graph {:directed? (core/directed? g)
+                                         :weighted? weighted?
+                                         :edge-class DefaultEdge})
+         ^LineGraphConverter converter (LineGraphConverter. g)]
+     (if weight-fn
+       (let [^BiFunction edge-weight (reify BiFunction
+                                       (apply [_ e1 e2]
+                                         (double (weight-fn e1 e2))))]
+         (.convertToLineGraph converter target edge-weight))
+       (.convertToLineGraph converter target))
+     target)))
 
 (defn lca-set
   "Set of lowest common ancestors, possibly empty."
