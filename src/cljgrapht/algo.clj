@@ -29,6 +29,7 @@
            (org.jgrapht.alg.interfaces AStarAdmissibleHeuristic
                                        LinkPredictionAlgorithm
                                        LowestCommonAncestorAlgorithm
+                                       MaximumDensitySubgraphAlgorithm
                                        SteinerTreeAlgorithm$SteinerTree
                                        PartitioningAlgorithm$Partitioning
                                        ShortestPathAlgorithm$SingleSourcePaths)
@@ -133,6 +134,7 @@
            (org.jgrapht.alg.similarity ZhangShashaTreeEditDistance)
            (org.jgrapht.alg.planar BoyerMyrvoldPlanarityInspector)
            (org.jgrapht.alg.decomposition DulmageMendelsohnDecomposition)
+           (org.jgrapht.alg.densesubgraph GoldbergMaximumDensitySubgraphAlgorithm)
            (org.jgrapht.alg.util Pair Triple)
            (org.jgrapht.traverse BreadthFirstIterator
                                  DepthFirstIterator
@@ -275,6 +277,23 @@
          (.convertToLineGraph converter target edge-weight))
        (.convertToLineGraph converter target))
      target)))
+
+(defn maximum-density-subgraph
+  "Find a densest subgraph. `s` and `t` must be distinct sentinel vertices not in `g`."
+  ([^Graph g s t]
+   (maximum-density-subgraph g s t {:epsilon 1e-9}))
+  ([^Graph g s t {:keys [epsilon] :or {epsilon 1e-9}}]
+   (when (or (= s t) (.containsVertex g s) (.containsVertex g t))
+     (throw (ex-info "Density sentinels must be distinct and absent from the graph"
+                     {:cljgrapht/error :invalid-sentinels
+                      :cljgrapht/source s
+                      :cljgrapht/sink t})))
+   (let [^MaximumDensitySubgraphAlgorithm algorithm
+         (GoldbergMaximumDensitySubgraphAlgorithm. g s t (double epsilon))
+         ^Graph result (.calculateDensest algorithm)]
+     {:vertices (set (.vertexSet result))
+      :edges (set (map #(edge-pair result %) (.edgeSet result)))
+      :density (.getDensity algorithm)})))
 
 (defn lca-set
   "Set of lowest common ancestors, possibly empty."

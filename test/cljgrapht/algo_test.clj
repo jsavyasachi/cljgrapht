@@ -53,6 +53,12 @@
     (is (or (.containsEdge lg (first edges) (second edges))
             (.containsEdge lg (second edges) (first edges))))))
 
+(deftest maximum-density-subgraph
+  (let [gr (g/weighted-graph [[:a :b 2.0] [:b :c 2.0] [:a :c 2.0] [:c :d 0.1]])
+        result (a/maximum-density-subgraph gr :source-sentinel :sink-sentinel)]
+    (is (pos? (:density result)))
+    (is (set/subset? (:vertices result) (g/vertices gr)))))
+
 (deftest shortest-path-weighted
   (let [gr (g/weighted-digraph [[:a :b 1.0] [:a :c 4.0] [:b :c 1.0] [:c :d 1.0]])]
     (testing "picks the cheaper multi-hop route over the direct expensive edge"
