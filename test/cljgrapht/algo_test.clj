@@ -29,6 +29,14 @@
            (a/link-prediction-score gr :a :d {:algorithm :jaccard})))
     (is (= 1.0 (get (a/predict-links gr [[:a :d]]) [:a :d])))))
 
+(deftest lowest-common-ancestor
+  (let [gr (g/digraph [[:root :left] [:root :right] [:left :leaf]])]
+    (is (= :left (a/lca gr :leaf :left)))
+    (is (= :root (a/lca gr :leaf :right {:algorithm :binary-lifting :root :root})))
+    (is (= #{:root} (a/lca-set gr :leaf :right {:algorithm :euler-tour-rmq :root :root})))
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo #":root"
+                          (a/lca gr :leaf :right {:algorithm :tarjan})))))
+
 (deftest shortest-path-weighted
   (let [gr (g/weighted-digraph [[:a :b 1.0] [:a :c 4.0] [:b :c 1.0] [:c :d 1.0]])]
     (testing "picks the cheaper multi-hop route over the direct expensive edge"

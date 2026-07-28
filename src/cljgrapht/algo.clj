@@ -28,6 +28,7 @@
                                          YenKShortestPath)
            (org.jgrapht.alg.interfaces AStarAdmissibleHeuristic
                                        LinkPredictionAlgorithm
+                                       LowestCommonAncestorAlgorithm
                                        PartitioningAlgorithm$Partitioning
                                        ShortestPathAlgorithm$SingleSourcePaths)
            (org.jgrapht.alg.connectivity ConnectivityInspector
@@ -116,6 +117,11 @@
                                           ResourceAllocationIndexLinkPrediction
                                           SaltonIndexLinkPrediction
                                           SorensenIndexLinkPrediction)
+           (org.jgrapht.alg.lca BinaryLiftingLCAFinder
+                               EulerTourRMQLCAFinder
+                               HeavyPathLCAFinder
+                               NaiveLCAFinder
+                               TarjanLCAFinder)
            (org.jgrapht.alg.isomorphism AHURootedTreeIsomorphismInspector
                                           AHUUnrootedTreeIsomorphismInspector
                                           ColorRefinementIsomorphismInspector
@@ -194,10 +200,68 @@
                     {:cljgrapht/error :unknown-algorithm
                      :cljgrapht/algorithm algorithm}))))
 
+(defn- lca-algorithm ^LowestCommonAncestorAlgorithm
+  [^Graph g algorithm {:keys [root roots]}]
+  (case algorithm
+    :naive (NaiveLCAFinder. g)
+    :binary-lifting (let [roots (or roots (when (some? root) #{root}))]
+      (when-not roots
+        (throw (ex-info "Rooted LCA algorithms require :root or :roots"
+                        {:cljgrapht/error :missing-root
+                         :cljgrapht/algorithm algorithm})))
+      (if root (BinaryLiftingLCAFinder. g root)
+          (BinaryLiftingLCAFinder. g roots)))
+    :euler-tour-rmq (let [roots (or roots (when (some? root) #{root}))]
+                      (when-not roots
+                        (throw (ex-info "Rooted LCA algorithms require :root or :roots"
+                                        {:cljgrapht/error :missing-root
+                                         :cljgrapht/algorithm algorithm})))
+                      (if root (EulerTourRMQLCAFinder. g root)
+                          (EulerTourRMQLCAFinder. g roots)))
+    :heavy-path (let [roots (or roots (when (some? root) #{root}))]
+                  (when-not roots
+                    (throw (ex-info "Rooted LCA algorithms require :root or :roots"
+                                    {:cljgrapht/error :missing-root
+                                     :cljgrapht/algorithm algorithm})))
+                  (if root (HeavyPathLCAFinder. g root)
+                      (HeavyPathLCAFinder. g roots)))
+    :tarjan (let [roots (or roots (when (some? root) #{root}))]
+              (when-not roots
+                (throw (ex-info "Rooted LCA algorithms require :root or :roots"
+                                {:cljgrapht/error :missing-root
+                                 :cljgrapht/algorithm algorithm})))
+              (if root (TarjanLCAFinder. g root)
+                  (TarjanLCAFinder. g roots)))
+    (throw (ex-info "Unknown LCA algorithm"
+                    {:cljgrapht/error :unknown-algorithm
+                     :cljgrapht/algorithm algorithm}))))
+
 (defn link-prediction-score
   "Predict a link score between `u` and `v`."
   [^Graph g u v {:keys [algorithm] :or {algorithm :common-neighbors}}]
   (.predict (link-prediction-algorithm g algorithm) u v))
+
+(defn lca
+  "Lowest common ancestor, or nil when none exists."
+  ([^Graph g a b] (lca g a b {}))
+  ([^Graph g a b opts]
+   (.getLCA (lca-algorithm g (:algorithm opts :naive) opts) a b)))
+
+(defn lca-set
+  "Set of lowest common ancestors, possibly empty."
+  ([^Graph g a b] (lca-set g a b {}))
+  ([^Graph g a b opts]
+   (let [^LowestCommonAncestorAlgorithm algorithm
+         (lca-algorithm g (:algorithm opts :naive) opts)]
+     (try
+       (set (.getLCASet algorithm a b))
+       (catch UnsupportedOperationException _
+         (if-let [ancestor (.getLCA algorithm a b)]
+           #{ancestor}
+           #{}))))))
+
+(defn naive-lca [^Graph g a b]
+  (lca g a b {:algorithm :naive}))
 
 (defn predict-links
   "Predict scores for `[u v]` pairs as a map."
