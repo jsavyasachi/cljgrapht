@@ -3,6 +3,11 @@
 All notable changes to this project are documented here. This change log follows
 the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [1.1.1] - 2026-08-01
+
+### Changed
+- Declare Loom in the pom as an optional dependency so cljdoc can analyze the optional integration namespace. It remains non-transitive for consumers.
+
 ## [1.1.0] - 2026-07-27
 
 ### Added

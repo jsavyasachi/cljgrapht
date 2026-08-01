@@ -8,8 +8,9 @@
 
 (deftest core-works-without-loom
   (testing "Loom is not a mandatory runtime dependency"
-    (is (not (contains? (:deps (edn/read-string (slurp "deps.edn")))
-                        'net.clojars.savya/loom))))
+    (is (= {:mvn/version "1.3.1" :optional true}
+           (get (:deps (edn/read-string (slurp "deps.edn")))
+                'net.clojars.savya/loom))))
   (testing "the core API loads and runs with Loom removed from the classpath"
     (let [separator (System/getProperty "path.separator")
           loom-path? #(re-find #"[/\\]loom(?:[/\\]|-[^/\\]*\\.jar$)" %)
