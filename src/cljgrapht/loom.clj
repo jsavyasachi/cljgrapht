@@ -1,12 +1,13 @@
 (ns cljgrapht.loom
   "Loom protocol interop for raw JGraphT graphs.
 
-  Requires a loom artifact (net.clojars.savya/loom or aysylu/loom) on the
-  classpath; cljgrapht does not drag it in.
+  This namespace needs a loom artifact (net.clojars.savya/loom or aysylu/loom)
+  on the classpath. cljgrapht does not include it as a dependency.
 
   EditableGraph operations mutate the underlying JGraphT graph in place and
-  return the same instance. Unlike loom's persistent graph records, return
-  values from add/remove operations are not fresh copies."
+  return the same instance. The return values from the add and remove
+  operations are the same graph, not new copies. Loom's persistent graph
+  records behave differently."
   (:require [cljgrapht.core :as core]
             [loom.graph :as loom])
   (:import (org.jgrapht Graph Graphs)))

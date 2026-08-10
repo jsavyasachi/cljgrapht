@@ -1,5 +1,5 @@
 (ns cljgrapht.gen
-  "Graph generators returning new `cljgrapht.core` graphs."
+  "Graph generators that return new `cljgrapht.core` graphs."
   (:require [cljgrapht.core :as core])
   (:import (java.util ArrayList HashMap Random)
            (java.util.concurrent.atomic AtomicInteger)
@@ -155,7 +155,7 @@
              {:directed? directed?})))
 
 (defn windmill-graph
-  "A new windmill graph with m copies of K_n or C_n sharing one vertex."
+  "A new windmill graph with m copies of K_n or C_n that share one vertex."
   (^Graph [mode m n]
    (windmill-graph mode m n {}))
   (^Graph [mode m n {:keys [directed?]}]
@@ -168,7 +168,7 @@
                {:directed? directed?}))))
 
 (defn complement-graph
-  "A new complement of graph gr, optionally including missing self-loops."
+  "A new complement of graph gr, optionally with the missing self-loops."
   (^Graph [^Graph gr]
    (complement-graph gr {}))
   (^Graph [^Graph gr {:keys [self-loops?]}]
@@ -402,11 +402,11 @@
    :zachary-karate-club "generateZacharyKarateClubGraph"})
 
 (def supported-named-graphs
-  "Sorted set of keywords accepted by `named-graph`."
+  "Sorted set of the keywords that `named-graph` accepts."
   (into (sorted-set) (keys named-graph-methods)))
 
 (defn named-graph
-  "A new named graph selected from `supported-named-graphs`."
+  "A new named graph from `supported-named-graphs`."
   ^Graph [name]
   (if-let [method (get named-graph-methods name)]
     (let [g (graph-with-supplier)]

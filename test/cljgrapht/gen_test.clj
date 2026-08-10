@@ -33,13 +33,13 @@
              (count (g/edges gr)))))))
 
 (deftest seeded-random-generators
-  (testing "G(n,p) is reproducible under seed"
+  (testing "the seed makes G(n,p) reproducible"
     (is (= (undirected-edge-set (gen/gnp-random-graph 20 0.25 {:seed 42}))
            (undirected-edge-set (gen/gnp-random-graph 20 0.25 {:seed 42})))))
-  (testing "Barabasi-Albert is reproducible under seed"
+  (testing "the seed makes Barabasi-Albert reproducible"
     (is (= (undirected-edge-set (gen/barabasi-albert-graph 4 2 20 {:seed 42}))
            (undirected-edge-set (gen/barabasi-albert-graph 4 2 20 {:seed 42})))))
-  (testing "Watts-Strogatz is reproducible under seed"
+  (testing "the seed makes Watts-Strogatz reproducible"
     (is (= (undirected-edge-set (gen/watts-strogatz-graph 20 4 0.25 {:seed 42}))
            (undirected-edge-set (gen/watts-strogatz-graph 20 4 0.25 {:seed 42}))))))
 

@@ -54,8 +54,8 @@ return the graph for threading, but they change the same object in place.
 
 ## Beyond Loom
 
-These `cljgrapht` functions expose JGraphT capabilities without direct Loom
-counterparts.
+These `cljgrapht` functions give access to JGraphT capabilities that Loom does
+not have.
 
 | cljgrapht | Notes |
 |---|---|
@@ -65,8 +65,8 @@ counterparts.
 | `cljgrapht.algo/k-shortest-paths` | Yen k shortest simple paths. |
 | `cljgrapht.algo/all-simple-paths` | All simple directed paths between two vertices. |
 | `cljgrapht.algo/cycle?` | Directed cycle detection. |
-| `cljgrapht.algo/vertices-on-cycles` | Vertices participating in directed cycles. |
-| `cljgrapht.algo/simple-cycles` | Directed simple cycle enumeration. |
+| `cljgrapht.algo/vertices-on-cycles` | Vertices that are part of a directed cycle. |
+| `cljgrapht.algo/simple-cycles` | Finds all directed simple cycles. |
 | `cljgrapht.algo/maximum-matching` | Edmonds maximum cardinality matching. |
 | `cljgrapht.algo/maximum-weight-matching` | Kolmogorov weighted matching. |
 | `cljgrapht.algo/bipartite-matching` | Hopcroft-Karp bipartite matching. |
@@ -109,8 +109,8 @@ Loom attribute code often keeps identity and attributes separate:
     (attr/add-attr :a :label "Alice"))
 ```
 
-In `cljgrapht`, vertices can be arbitrary Clojure values. Put the attributes in
-the vertex value when that fits your model:
+In `cljgrapht`, a vertex can be any Clojure value. Put the attributes in the
+vertex value if it fits your model:
 
 ```clojure
 (require '[cljgrapht.core :as g])
@@ -121,13 +121,14 @@ the vertex value when that fits your model:
 (def gr (g/graph [[alice bob]]))
 ```
 
-If vertex identity and attributes must change independently, keep vertices as
-stable ids and store attributes in a separate map.
+If vertex identity and attributes must change independently, keep the vertices
+as stable ids. Store the attributes in a separate map.
 
 ## Incremental Migration With cljgrapht.loom
 
 `cljgrapht.loom` extends Loom protocols to raw JGraphT graphs. Load the
-namespace for side effects, then Loom algorithms can consume a `cljgrapht` graph:
+namespace for its side effects. Then Loom algorithms can accept a `cljgrapht`
+graph:
 
 ```clojure
 (require '[cljgrapht.core :as g]
@@ -140,12 +141,12 @@ namespace for side effects, then Loom algorithms can consume a `cljgrapht` graph
 ;; => (:a :b :c)
 ```
 
-This lets you migrate construction first, then replace Loom algorithms one call
-site at a time.
+This lets you migrate the construction code first. Then you can replace the
+Loom algorithms one call site at a time.
 
 ## DFS Ordering
 
 Loom `pre-traverse` visits neighbors in adjacency order. `cljgrapht.algo/dfs`
-uses JGraphT's stack-based iterator, so later neighbors can be visited first.
-If exact traversal order is observable in your tests, update the expected order
-while migrating.
+uses JGraphT's stack-based iterator, so it can visit later neighbors first.
+If your tests check the exact traversal order, update the expected order when
+you migrate.

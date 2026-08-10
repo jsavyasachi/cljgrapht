@@ -9,7 +9,8 @@
     (testing "breadth-first traversal from a start vertex"
       (is (= [:a :b :c :d :e] (a/bfs gr :a))))
     (testing "depth-first traversal from a start vertex"
-      ;; JGraphT's DFS iterator is stack-driven (LIFO), so later neighbors win.
+      ;; JGraphT's DFS iterator is stack-driven (LIFO), so it visits later
+      ;; neighbors first.
       (is (= [:a :c :e :b :d] (a/dfs gr :a)))))
   (testing "directed traversal follows edge direction"
     (let [gr (g/digraph [[:a :b] [:a :c] [:b :d] [:c :e]])]
@@ -35,8 +36,8 @@
   (< (Math/abs (double (- a b))) 1e-9))
 
 (deftest link-prediction-indices
-  ;; Neighbours: a{b c}, b{a c d}, c{a b}, d{b}. For the pair (:a :d) the sole
-  ;; common neighbour is b, so every index has a hand-computable value.
+  ;; Neighbors: a{b c}, b{a c d}, c{a b}, d{b}. The pair (:a :d) has only b as
+  ;; a common neighbor. Each index has a value that you can calculate.
   (let [gr (g/graph [[:a :b] [:a :c] [:b :c] [:b :d]])]
     (testing "each convenience fn matches its closed-form value"
       (is (close? (/ 1.0 (Math/sqrt 2.0)) (a/salton-index gr :a :d)))          ; |CN|/sqrt(k_a*k_d)
@@ -315,14 +316,14 @@
            (a/condensation gr)))))
 
 (deftest topological-and-cycles
-  (testing "DAG sorts with sources before sinks; no cycle"
+  (testing "DAG sorts with sources before sinks and has no cycle"
     (let [dag (g/digraph [[:a :b] [:a :c] [:b :d] [:c :d]])
           order (a/topological-sort dag)]
       (is (false? (a/cycle? dag)))
       (is (= :a (first order)))
       (is (= :d (last order)))
       (is (= #{:a :b :c :d} (set order)))))
-  (testing "directed cycle is detected; topo-sort returns nil"
+  (testing "directed cycle is detected and topo-sort returns nil"
     (let [cyc (g/digraph [[:a :b] [:b :a]])]
       (is (true? (a/cycle? cyc)))
       (is (nil? (a/topological-sort cyc))))))
@@ -509,10 +510,10 @@
 
 (deftest centrality
   (let [star (g/graph [[:hub :a] [:hub :b] [:hub :c]])]
-    (testing "every vertex scored"
+    (testing "every vertex gets a score"
       (is (= #{:hub :a :b :c} (set (keys (a/betweenness-centrality star)))))
       (is (= #{:hub :a :b :c} (set (keys (a/pagerank star))))))
-    (testing "hub is the most central node"
+    (testing "hub is the most central vertex"
       (let [bc (a/betweenness-centrality star)
             pr (a/pagerank star)]
         (is (= :hub (key (apply max-key val bc))))

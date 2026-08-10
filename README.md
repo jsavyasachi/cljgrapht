@@ -4,9 +4,9 @@
 [![cljdoc](https://cljdoc.org/badge/net.clojars.savya/cljgrapht)](https://cljdoc.org/d/net.clojars.savya/cljgrapht)
 [![test](https://github.com/jsavyasachi/cljgrapht/actions/workflows/test.yml/badge.svg)](https://github.com/jsavyasachi/cljgrapht/actions/workflows/test.yml)
 
-An idiomatic Clojure graph library backed by [JGraphT](https://jgrapht.org/):
-build graphs over plain Clojure values and run JGraphT's fast, mature algorithm
-catalog, getting plain Clojure data back.
+A Clojure graph library that uses [JGraphT](https://jgrapht.org/). You build
+graphs over plain Clojure values, run JGraphT's algorithms, and get plain
+Clojure data back.
 
 ## Stack
 
@@ -17,23 +17,23 @@ catalog, getting plain Clojure data back.
 
 ## Why
 
-Graph work is the textbook case where Python's `networkx` is slow: it's pure
-Python, and graph algorithms are irregular and pointer-chasing, so they never
-vectorize into a C core the way numpy workloads do. On the JVM the same
-algorithms run on JIT-compiled code with real threads.
+Python's `networkx` is slow because it is pure Python. Graph algorithms are
+irregular and they chase pointers, so they do not vectorize into a C core as
+numpy workloads do. On the JVM the same algorithms run on JIT-compiled code with
+real threads.
 
-`loom` and `ubergraph` are the established pure-Clojure graph libraries, and if
-they cover your needs they're a great fit. `cljgrapht` takes a different tack:
-instead of implementing algorithms in Clojure, it wraps [JGraphT](https://jgrapht.org/),
-so you get its large, actively-developed algorithm catalog (shortest paths,
-centrality, flow, matching, coloring, isomorphism, and more) running on the JVM,
-behind a Clojure-shaped API. Reach for it when you want an algorithm the
-pure-Clojure libraries don't ship, or JGraphT's performance on large graphs.
-Vertices are any Clojure value; results come back as vectors, sets, and maps.
+`loom` and `ubergraph` are pure-Clojure graph libraries. Use one of them if it
+covers your needs. `cljgrapht` uses a different approach. It does not write the
+algorithms in Clojure. It wraps [JGraphT](https://jgrapht.org/) and puts a
+Clojure API in front of the JGraphT algorithm catalog (shortest paths,
+centrality, flow, matching, coloring, isomorphism, and more). Use cljgrapht when
+you want an algorithm that the pure-Clojure libraries do not have, or when you
+want JGraphT's performance on large graphs. A vertex can be any Clojure value.
+Results come back as vectors, sets, and maps.
 
-This is a performance wrapper, not a persistent data structure: graphs are
-JGraphT's native mutable objects. Constructors and mutators return the graph for
-threading, but they mutate in place.
+This is a performance wrapper, not a persistent data structure. Graphs are
+JGraphT's native mutable objects. Constructors and mutators return the graph so
+that you can thread calls, but they mutate the graph in place.
 
 Requires **JDK 11+** (JGraphT 1.5.x).
 
@@ -138,19 +138,18 @@ cljgrapht graphs:
 (alg/dijkstra-path gr :a :c) ;; => (:a :b :c)
 ```
 
-Loom is not a dependency of cljgrapht - add a loom artifact
-(`net.clojars.savya/loom` or `aysylu/loom`) to your own deps before requiring
-`cljgrapht.loom`. Note that loom's `EditableGraph` operations mutate the
-underlying JGraphT graph in place and return the same instance, unlike loom's
-persistent graph records.
+Loom is not a dependency of cljgrapht. Add a loom artifact
+(`net.clojars.savya/loom` or `aysylu/loom`) to your own deps before you require
+`cljgrapht.loom`. Loom's `EditableGraph` operations mutate the underlying
+JGraphT graph in place and return the same instance. Loom's persistent graph
+records behave differently.
 
 ## Performance
 
-cljgrapht runs JGraphT's JIT-compiled Java algorithms instead of implementing
-them in Clojure, so it's substantially faster on non-trivial graphs. Random
-weighted digraphs, [criterium](https://github.com/hugoduncan/criterium)
-`quick-bench`, Clojure 1.12.5 / JDK 17, mean time, graph construction excluded
-from the algorithm rows. Source: [`bench/bench.clj`](bench/bench.clj).
+These benchmarks use random weighted digraphs and
+[criterium](https://github.com/hugoduncan/criterium) `quick-bench`. They use
+Clojure 1.12.5 and JDK 17. They exclude graph construction from the algorithm
+rows. Source: [`bench/bench.clj`](bench/bench.clj).
 
 **2,000 vertices / ~10k edges**
 
@@ -168,10 +167,9 @@ from the algorithm rows. Source: [`bench/bench.clj`](bench/bench.clj).
 | Weighted shortest path (Dijkstra) | 20 ms | 8.1 ms | 1.1 ms |
 | Connected components | 28 ms | 95 ms | 13 ms |
 
-This is the expected tradeoff of a native-Java engine, not a knock on loom or
-ubergraph: both are pure-Clojure libraries with persistent, immutable graphs,
-which cljgrapht gives up for speed. Reach for cljgrapht when graph size or
-algorithm depth is the constraint.
+This is the tradeoff of a native Java engine. loom and ubergraph use persistent,
+immutable graphs. cljgrapht uses mutable graphs instead. Use cljgrapht when
+graph size or algorithm depth is the constraint.
 
 ## License
 

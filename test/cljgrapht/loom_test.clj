@@ -99,7 +99,7 @@
   (testing "weighted shortest path uses JGraphT edge weights"
     (let [gr (g/weighted-digraph [[:a :b 1.0] [:a :c 10.0] [:b :c 1.0]])]
       (is (= '(:a :b :c) (alg/dijkstra-path gr :a :c)))))
-  (testing "connected components work through loom protocols"
+  (testing "connected components use loom protocols"
     (let [gr (g/digraph [[:a :b] [:c :d]])]
       (is (= #{#{:a :b} #{:c :d}}
              (set (map set (alg/connected-components gr))))))))

@@ -7,7 +7,7 @@
   (:import (org.jgrapht.graph DefaultEdge)))
 
 (deftest core-works-without-loom
-  (testing "Loom is not a mandatory runtime dependency"
+  (testing "Loom is not a required runtime dependency"
     (is (= {:mvn/version "1.3.1" :optional true}
            (get (:deps (edn/read-string (slurp "deps.edn")))
                 'net.clojars.savya/loom))))
@@ -47,7 +47,7 @@
       (is (= #{:solo} (g/vertices gr))))))
 
 (deftest directedness
-  (testing "digraph distinguishes direction; neighbors split into succ/pred"
+  (testing "digraph separates successors and predecessors by direction"
     (let [gr (g/digraph [[:a :b] [:a :c] [:c :a]])]
       (is (= #{:b :c} (set (g/successors gr :a))))
       (is (= #{:c} (set (g/predecessors gr :a))))

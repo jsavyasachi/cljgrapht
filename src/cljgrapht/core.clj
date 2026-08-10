@@ -1,11 +1,11 @@
 (ns cljgrapht.core
-  "Idiomatic construction and inspection of graphs backed by JGraphT.
+  "Construction and inspection of graphs that use JGraphT.
 
-  Vertices are arbitrary Clojure values (keywords, strings, numbers, maps).
-  Graphs are JGraphT's native mutable objects: constructors and mutators return
-  the same graph for threading, but they mutate in place (this is a performance
-  wrapper, not a persistent data structure). Algorithms live in `cljgrapht.algo`
-  and return plain Clojure data."
+  A vertex can be any Clojure value (keyword, string, number, map). Graphs are
+  JGraphT's native mutable objects. Constructors and mutators return the same
+  graph so that you can thread calls, but they mutate the graph in place. This
+  is a performance wrapper, not a persistent data structure. The algorithms are
+  in `cljgrapht.algo` and they return plain Clojure data."
   (:import (java.util HashMap)
            (java.util.function Supplier)
            (org.jgrapht Graph Graphs GraphType)
@@ -55,7 +55,7 @@
       g)))
 
 (defn make-graph
-  "Build a graph from options controlling its type, suppliers, and initial edges."
+  "Build a graph from options that set its type, suppliers, and initial edges."
   ^Graph [opts]
   (build opts))
 
@@ -80,14 +80,14 @@
   (^Graph [edges] (build {:directed? true :weighted? true :edges edges})))
 
 (defn add-vertex
-  "Add vertex `v` to `g`, returning `g`."
+  "Add vertex `v` to `g`. Returns `g`."
   ^Graph [^Graph g v]
   (.addVertex g v)
   g)
 
 (defn add-edge
-  "Add an edge `u -> v` (optionally with weight `w`) to `g`, adding the vertices
-  if absent. Returns `g`."
+  "Add an edge `u -> v` (optionally with weight `w`) to `g`. Adds the vertices
+  if `g` does not have them. Returns `g`."
   (^Graph [^Graph g u v]
    (.addVertex g u)
    (.addVertex g v)
@@ -126,7 +126,7 @@
   (map #(render-edge g %) (.edgeSet g)))
 
 (defn neighbors
-  "Vertices adjacent to `v` in `g` (direction-agnostic)."
+  "Vertices adjacent to `v` in `g`. The edge direction does not matter."
   [^Graph g v]
   (Graphs/neighborListOf g v))
 
@@ -146,13 +146,13 @@
   (.getEdgeWeight g (.getEdge g u v)))
 
 (defn remove-vertex
-  "Remove vertex `v` and its incident edges from `g`, returning `g`."
+  "Remove vertex `v` and its incident edges from `g`. Returns `g`."
   ^Graph [^Graph g v]
   (.removeVertex g v)
   g)
 
 (defn remove-edge
-  "Remove an edge from `g` by endpoints or by edge object, returning `g`."
+  "Remove an edge from `g` by endpoints or by edge object. Returns `g`."
   (^Graph [^Graph g edge]
    (.removeEdge g edge)
    g)
@@ -232,7 +232,7 @@
             :cljgrapht/graph-type (.getType g)}))
 
 (defn set-weight
-  "Set the weight of edge `u -> v` to `w`, returning `g`."
+  "Set the weight of edge `u -> v` to `w`. Returns `g`."
   ^Graph [^Graph g u v w]
   (when-not (weighted? g)
     (throw (not-weighted g :set-weight)))
@@ -285,7 +285,7 @@
   (EdgeReversedGraph. g))
 
 (defn weighted-view
-  "A weighted view of `g` using a map from edge objects to weights."
+  "A weighted view of `g` that uses a map from edge objects to weights."
   ^Graph [^Graph g weights]
   (let [weight-map (HashMap.)]
     (doseq [[edge edge-weight] weights]

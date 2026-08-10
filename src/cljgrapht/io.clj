@@ -121,7 +121,7 @@
     :else (core/graph)))
 
 (defn dot
-  "DOT string for `g`. Vertex ids are sanitized `pr-str` values; labels keep the
+  "DOT string for `g`. Vertex ids are sanitized `pr-str` values. Labels keep the
   original `pr-str` for display."
   (^String [^Graph g] (dot g {}))
   (^String [^Graph g {:keys [attributes]}]
@@ -135,7 +135,7 @@
      (export-string exporter g))))
 
 (defn write-dot!
-  "Write `(dot g)` to `path`, returning nil."
+  "Write `(dot g)` to `path`. Returns nil."
   ([^Graph g path] (write-dot! g path {}))
   ([^Graph g path opts] (spit path (dot g opts))))
 
@@ -176,7 +176,7 @@
      (export-string exporter g))))
 
 (defn write-graphml!
-  "Write `(graphml g)` to `path`, returning nil."
+  "Write `(graphml g)` to `path`. Returns nil."
   ([^Graph g path] (write-graphml! g path {}))
   ([^Graph g path opts] (spit path (graphml g opts))))
 
@@ -207,7 +207,7 @@
      (export-string exporter g))))
 
 (defn write-gml!
-  "Write `(gml g opts)` to `path`, returning nil."
+  "Write `(gml g opts)` to `path`. Returns nil."
   ([^Graph g path] (write-gml! g path {}))
   ([^Graph g path opts] (spit path (gml g opts))))
 
@@ -236,7 +236,7 @@
      (export-string exporter g))))
 
 (defn write-json!
-  "Write `(json-graph g opts)` to `path`, returning nil."
+  "Write `(json-graph g opts)` to `path`. Returns nil."
   ([^Graph g path] (write-json! g path {}))
   ([^Graph g path opts] (spit path (json-graph g opts))))
 
@@ -278,7 +278,7 @@
      (export-string exporter g))))
 
 (defn write-csv!
-  "Write `(csv g opts)` to `path`, returning nil."
+  "Write `(csv g opts)` to `path`. Returns nil."
   ([^Graph g path] (write-csv! g path {}))
   ([^Graph g path opts] (spit path (csv g opts))))
 
@@ -367,13 +367,13 @@
      (export-string exporter g))))
 
 (defn write-dimacs!
-  "Write `(dimacs g opts)` to `path`, returning nil."
+  "Write `(dimacs g opts)` to `path`. Returns nil."
   ([^Graph g path] (write-dimacs! g path {}))
   ([^Graph g path opts] (spit path (dimacs g opts))))
 
 (defn read-dimacs
   "Read DIMACS from a string or existing path. Graphs with a `p sp` header are
-  directed; `:directed?` and `:weighted?` can override detection."
+  directed. `:directed?` and `:weighted?` override the detection."
   ([path-or-string] (read-dimacs path-or-string {}))
   ([path-or-string opts]
    (let [s (input-string path-or-string)
@@ -404,7 +404,7 @@
    (export-string (Graph6Sparse6Exporter. (graph6-format format)) g)))
 
 (defn write-graph6!
-  "Write `(graph6 g opts)` to `path`, returning nil."
+  "Write `(graph6 g opts)` to `path`. Returns nil."
   ([^Graph g path] (write-graph6! g path {}))
   ([^Graph g path opts] (spit path (graph6 g opts))))
 
@@ -443,7 +443,7 @@
    (export-string (MatrixExporter. (matrix-format format) (id-provider)) g)))
 
 (defn write-matrix!
-  "Write `(matrix g opts)` to `path`, returning nil."
+  "Write `(matrix g opts)` to `path`. Returns nil."
   ([^Graph g path] (write-matrix! g path {}))
   ([^Graph g path opts] (spit path (matrix g opts))))
 
@@ -472,7 +472,7 @@
      (export-string exporter g))))
 
 (defn write-gexf!
-  "Write `(gexf g opts)` to `path`, returning nil."
+  "Write `(gexf g opts)` to `path`. Returns nil."
   ([^Graph g path] (write-gexf! g path {}))
   ([^Graph g path opts] (spit path (gexf g opts))))
 
@@ -497,7 +497,7 @@
   (export-string (VisioExporter. (id-provider)) g))
 
 (defn write-visio!
-  "Write `(visio g)` to `path`, returning nil."
+  "Write `(visio g)` to `path`. Returns nil."
   [^Graph g path]
   (spit path (visio g)))
 
@@ -510,6 +510,6 @@
     (export-string exporter g)))
 
 (defn write-lemon!
-  "Write `(lemon g)` to `path`, returning nil."
+  "Write `(lemon g)` to `path`. Returns nil."
   [^Graph g path]
   (spit path (lemon g)))

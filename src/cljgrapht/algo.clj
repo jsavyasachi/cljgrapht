@@ -1,9 +1,9 @@
 (ns cljgrapht.algo
   "Graph algorithms over `cljgrapht.core` graphs. Every function takes a graph
-  and returns plain Clojure data (paths as vectors, components as sets, scores as
-  maps), so results compose with the rest of your Clojure code.
+  and returns plain Clojure data: paths as vectors, components as sets, and
+  scores as maps. The results compose with the rest of your Clojure code.
 
-  Direction matters: `connected-components` is for undirected graphs;
+  Direction is important. `connected-components` is for undirected graphs.
   `strongly-connected-components`, `topological-sort`, and `cycle?` are for
   directed graphs."
   (:require [cljgrapht.core :as core])
@@ -279,7 +279,8 @@
      target)))
 
 (defn maximum-density-subgraph
-  "Find a densest subgraph. `s` and `t` must be distinct sentinel vertices not in `g`."
+  "Find a densest subgraph. `s` and `t` must be different sentinel vertices.
+  `g` must not contain them."
   ([^Graph g s t]
    (maximum-density-subgraph g s t {:epsilon 1e-9}))
   ([^Graph g s t {:keys [epsilon] :or {epsilon 1e-9}}]
@@ -405,7 +406,7 @@
 
 (defn astar
   "Cheapest path from `src` to `dst` as `{:path [v ...] :weight w}`, or nil if
-  unreachable, using A* with `heuristic`, a function of `[vertex target]`."
+  unreachable. Uses A* with `heuristic`, a function of `[vertex target]`."
   [^Graph g src dst heuristic]
   (let [h (reify AStarAdmissibleHeuristic
             (getCostEstimate [_ v target]
@@ -431,8 +432,8 @@
   (vec (iterator-seq (BreadthFirstIterator. g start))))
 
 (defn dfs
-  "Vector of vertices in depth-first pre-order from `start`. Neighbor
-  visitation follows JGraphT's stack order: most-recently-added first."
+  "Vector of vertices in depth-first pre-order from `start`. It visits
+  neighbors in JGraphT's stack order: most-recently-added first."
   [^Graph g start]
   (ensure-vertex g :dfs start)
   (vec (iterator-seq (DepthFirstIterator. g start))))
@@ -487,12 +488,12 @@
   (mapv path-result (.getAllPaths (AllDirectedPaths. g) src dst true nil)))
 
 (defn bidirectional-shortest-path
-  "Cheapest path from `src` to `dst` using bidirectional Dijkstra."
+  "Cheapest path from `src` to `dst` with bidirectional Dijkstra."
   [^Graph g src dst]
   (path-result (.getPath (BidirectionalDijkstraShortestPath. g) src dst)))
 
 (defn delta-stepping-shortest-path
-  "Cheapest path from `src` to `dst` using parallel delta-stepping."
+  "Cheapest path from `src` to `dst` with parallel delta-stepping."
   [^Graph g src dst]
   (let [^ThreadPoolExecutor executor (Executors/newFixedThreadPool 1)]
     (try
@@ -501,7 +502,7 @@
         (.shutdownNow executor)))))
 
 (defn contraction-hierarchy-shortest-path
-  "Cheapest path from `src` to `dst` using a contraction hierarchy."
+  "Cheapest path from `src` to `dst` with a contraction hierarchy."
   [^Graph g src dst]
   (let [^ThreadPoolExecutor executor (Executors/newFixedThreadPool 1)]
     (try
@@ -511,12 +512,12 @@
         (.shutdownNow executor)))))
 
 (defn yen-k-shortest-paths
-  "The `k` shortest loopless paths from `src` to `dst` using Yen's algorithm."
+  "The `k` shortest loopless paths from `src` to `dst` with Yen's algorithm."
   [^Graph g src dst k]
   (mapv path-result (.getPaths (YenKShortestPath. g) src dst (int k))))
 
 (defn disjoint-shortest-paths
-  "Up to `k` edge-disjoint shortest paths from `src` to `dst` using Suurballe."
+  "Up to `k` edge-disjoint shortest paths from `src` to `dst` with Suurballe."
   [^Graph g src dst k]
   (ensure-directed g :disjoint-shortest-paths)
   (mapv path-result
@@ -566,13 +567,13 @@
   (map set (.stronglyConnectedSets (KosarajuStrongConnectivityInspector. g))))
 
 (defn gabow-strongly-connected-components
-  "Seq of strongly-connected vertex sets using Gabow's algorithm."
+  "Seq of strongly-connected vertex sets with Gabow's algorithm."
   [^Graph g]
   (ensure-directed g :gabow-strongly-connected-components)
   (map set (.stronglyConnectedSets (GabowStrongConnectivityInspector. g))))
 
 (defn kosaraju-strongly-connected-components
-  "Seq of strongly-connected vertex sets using Kosaraju's algorithm."
+  "Seq of strongly-connected vertex sets with Kosaraju's algorithm."
   [^Graph g]
   (ensure-directed g :kosaraju-strongly-connected-components)
   (map set (.stronglyConnectedSets (KosarajuStrongConnectivityInspector. g))))
@@ -666,17 +667,17 @@
   (mapv vec (.findSimpleCycles algorithm)))
 
 (defn johnson-simple-cycles
-  "Simple directed cycles using Johnson's algorithm."
+  "Simple directed cycles with Johnson's algorithm."
   [^Graph g]
   (directed-cycles g :johnson-simple-cycles (JohnsonSimpleCycles. g)))
 
 (defn tarjan-simple-cycles
-  "Simple directed cycles using Tarjan's algorithm."
+  "Simple directed cycles with Tarjan's algorithm."
   [^Graph g]
   (directed-cycles g :tarjan-simple-cycles (TarjanSimpleCycles. g)))
 
 (defn szwarcfiter-lauer-simple-cycles
-  "Simple directed cycles using the Szwarcfiter-Lauer algorithm."
+  "Simple directed cycles with the Szwarcfiter-Lauer algorithm."
   [^Graph g]
   (directed-cycles g :szwarcfiter-lauer-simple-cycles
                    (SzwarcfiterLauerSimpleCycles. g)))
@@ -723,17 +724,17 @@
     (spanning-tree-result g st)))
 
 (defn prim-minimum-spanning-tree
-  "Minimum spanning tree using Prim's algorithm."
+  "Minimum spanning tree with Prim's algorithm."
   [^Graph g]
   (spanning-tree-result g (.getSpanningTree (PrimMinimumSpanningTree. g))))
 
 (defn kruskal-minimum-spanning-tree
-  "Minimum spanning tree using Kruskal's algorithm."
+  "Minimum spanning tree with Kruskal's algorithm."
   [^Graph g]
   (spanning-tree-result g (.getSpanningTree (KruskalMinimumSpanningTree. g))))
 
 (defn boruvka-minimum-spanning-tree
-  "Minimum spanning tree using Boruvka's algorithm."
+  "Minimum spanning tree with Boruvka's algorithm."
   [^Graph g]
   (spanning-tree-result g (.getSpanningTree (BoruvkaMinimumSpanningTree. g))))
 
@@ -788,19 +789,19 @@
     (matching-result g matching)))
 
 (defn dense-edmonds-maximum-matching
-  "Maximum-cardinality matching using the dense Edmonds implementation."
+  "Maximum-cardinality matching with the dense Edmonds implementation."
   [^Graph g]
   (ensure-undirected g :dense-edmonds-maximum-matching)
   (matching-result g (.getMatching (DenseEdmondsMaximumCardinalityMatching. g))))
 
 (defn sparse-edmonds-maximum-matching
-  "Maximum-cardinality matching using the sparse Edmonds implementation."
+  "Maximum-cardinality matching with the sparse Edmonds implementation."
   [^Graph g]
   (ensure-undirected g :sparse-edmonds-maximum-matching)
   (matching-result g (.getMatching (SparseEdmondsMaximumCardinalityMatching. g))))
 
 (defn hopcroft-karp-matching
-  "Maximum bipartite matching using Hopcroft-Karp."
+  "Maximum bipartite matching with Hopcroft-Karp."
   [^Graph g part1 part2]
   (ensure-undirected g :hopcroft-karp-matching)
   (matching-result
@@ -836,7 +837,7 @@
   (assignment g part1 part2))
 
 (defn path-growing-weighted-matching
-  "Approximate maximum-weight matching using path growing."
+  "Approximate maximum-weight matching with the path growing algorithm."
   [^Graph g]
   (ensure-undirected g :path-growing-weighted-matching)
   (weighted-matching-result g (.getMatching (PathGrowingWeightedMatching. g))))
@@ -858,7 +859,7 @@
    :weight (.getWeight cover)})
 
 (defn min-vertex-cover
-  "Exact minimum vertex cover, optionally using a vertex-to-weight map."
+  "Exact minimum vertex cover, optionally with a vertex-to-weight map."
   ([^Graph g]
    (ensure-undirected g :min-vertex-cover)
    (vertex-cover-result (.getVertexCover (RecursiveExactVCImpl. g))))
@@ -867,7 +868,7 @@
    (vertex-cover-result (.getVertexCover (RecursiveExactVCImpl. g weights)))))
 
 (defn greedy-vertex-cover
-  "Greedy vertex cover, optionally using a vertex-to-weight map."
+  "Greedy vertex cover, optionally with a vertex-to-weight map."
   ([^Graph g]
    (ensure-undirected g :greedy-vertex-cover)
    (vertex-cover-result (.getVertexCover (GreedyVCImpl. g))))
@@ -952,18 +953,18 @@
   (map set (iterator-seq (.iterator (BronKerboschCliqueFinder. g)))))
 
 (defn bron-kerbosch-maximal-cliques
-  "Seq of maximal cliques using the basic Bron-Kerbosch algorithm."
+  "Seq of maximal cliques with the basic Bron-Kerbosch algorithm."
   [^Graph g]
   (maximal-cliques g))
 
 (defn pivot-maximal-cliques
-  "Seq of maximal cliques using pivoting Bron-Kerbosch."
+  "Seq of maximal cliques with pivoting Bron-Kerbosch."
   [^Graph g]
   (ensure-undirected g :pivot-maximal-cliques)
   (map set (iterator-seq (.iterator (PivotBronKerboschCliqueFinder. g)))))
 
 (defn degeneracy-maximal-cliques
-  "Seq of maximal cliques using degeneracy-ordered Bron-Kerbosch."
+  "Seq of maximal cliques with degeneracy-ordered Bron-Kerbosch."
   [^Graph g]
   (ensure-undirected g :degeneracy-maximal-cliques)
   (map set (iterator-seq (.iterator (DegeneracyBronKerboschCliqueFinder. g)))))
@@ -1110,7 +1111,7 @@
 (defn max-flow
   "Maximum `source`->`sink` flow in directed graph `g` as
   `{:value flow-value :flow {[u v] flow-on-edge, ...}}` (Push-Relabel). Edge
-  weights are capacities; zero-flow edges are omitted from `:flow`."
+  weights are capacities. `:flow` does not include zero-flow edges."
   [^Graph g source sink]
   (ensure-directed g :max-flow)
   (let [^MaximumFlowAlgorithm$MaximumFlow flow (.getMaximumFlow
@@ -1143,17 +1144,17 @@
                    [(edge-pair g e) f]))}))
 
 (defn edmonds-karp-max-flow
-  "Maximum flow using Edmonds-Karp."
+  "Maximum flow with Edmonds-Karp."
   [^Graph g source sink]
   (maximum-flow-result g (EdmondsKarpMFImpl. g) source sink))
 
 (defn push-relabel-max-flow
-  "Maximum flow using push-relabel."
+  "Maximum flow with push-relabel."
   [^Graph g source sink]
   (maximum-flow-result g (PushRelabelMFImpl. g) source sink))
 
 (defn dinic-max-flow
-  "Maximum flow using Dinic's algorithm."
+  "Maximum flow with Dinic's algorithm."
   [^Graph g source sink]
   (maximum-flow-result g (DinicMFImpl. g) source sink))
 
