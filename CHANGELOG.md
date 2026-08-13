@@ -36,7 +36,7 @@ the conventions of [keepachangelog.com](http://keepachangelog.com/).
 ### Changed
 - Migrate the build to deps.edn and tools.build, with Leiningen supported via lein-tools-deps.
 
-## 0.4.0 - 2026-07-08
+## [0.4.0] - 2026-07-08
 
 ### Added
 - `cljgrapht.gen` graph generators for complete, ring, star, grid,
@@ -44,7 +44,7 @@ the conventions of [keepachangelog.com](http://keepachangelog.com/).
 - `cljgrapht.io` DOT and GraphML export helpers, DOT import, and file writers.
 - cljdoc migration guide for moving from Loom to cljgrapht.
 
-## 0.3.0 - 2026-07-08
+## [0.3.0] - 2026-07-08
 
 ### Added
 - Shortest-path algorithms in `cljgrapht.algo`: `astar`, `bellman-ford`,
