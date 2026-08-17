@@ -10,12 +10,13 @@ We accept bug reports, fixes, and focused feature contributions.
 
 ## Development
 
-This is a Clojure library. You need a JDK and [Leiningen](https://leiningen.org/).
-Projects that use `deps.edn` use the Clojure CLI instead: see the README.
+This is a Clojure library built with `deps.edn` and the
+[Clojure CLI](https://clojure.org/guides/install_clojure); Leiningen is not
+required. You need a JDK and the Clojure CLI. See the README for the full set
+of aliases.
 
 ```bash
-lein test     # run the test suite
-lein check    # AOT-compile; must be free of reflection warnings
+clojure -M:test    # run the test suite (compiled with *warn-on-reflection* on)
 ```
 
 Requirements for a change that we can merge:
@@ -23,7 +24,7 @@ Requirements for a change that we can merge:
 - **Tests first.** Add or update the tests for the behavior that you change. For
   a bug fix, add a regression test. It must fail before your fix and pass after
   it.
-- **Build passes.** `lein test` passes and `lein check` reports **zero**
+- **Build passes.** The test suite passes and the build reports **zero**
   reflection warnings.
 - **One change.** Keep each pull request to one logical change.
 
