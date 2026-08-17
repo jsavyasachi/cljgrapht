@@ -42,13 +42,13 @@ Requires **JDK 11+** (JGraphT 1.5.x).
 tools.deps (`deps.edn`):
 
 ```clojure
-net.clojars.savya/cljgrapht {:mvn/version "1.1.1"}
+net.clojars.savya/cljgrapht {:mvn/version "1.1.2"}
 ```
 
 Leiningen (`project.clj`):
 
 ```clojure
-[net.clojars.savya/cljgrapht "1.1.1"]
+[net.clojars.savya/cljgrapht "1.1.2"]
 ```
 
 Run tests with `clojure -M:test`. Build a jar with `clojure -T:build jar` and

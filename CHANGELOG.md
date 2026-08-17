@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. This change log follows
 the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [1.1.2] - 2026-08-17
+
+### Fixed
+
+- `density` counts distinct non-loop endpoint pairs, so it no longer exceeds
+  1.0 on the multigraph/pseudograph types the public constructor allows.
+- `build` guards against `addEdge` returning nil for a rejected duplicate or
+  self-loop before calling `setEdgeWeight`.
+
 ## [1.1.1] - 2026-08-01
 
 ### Changed
