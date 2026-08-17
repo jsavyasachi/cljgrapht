@@ -37,5 +37,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: clj-kondo/setup-clj-kondo@v1
-      - run: clj-kondo --lint src test
+      - name: Install clj-kondo
+        run: |
+          curl -sSL https://raw.githubusercontent.com/clj-kondo/clj-kondo/v2026.08.04/script/install-clj-kondo | bash -s -- --dir "$HOME/.local/bin" --version 2026.08.04
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Lint
+        run: clj-kondo --lint src test --fail-level error
