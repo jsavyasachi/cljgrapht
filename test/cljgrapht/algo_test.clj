@@ -220,7 +220,12 @@
     (let [gr (doto (g/graph [[:a :b] [:b :c]])
                (g/add-vertex :d))]
       (is (= (/ 1.0 3.0) (a/density gr)))
-      (is (= #{:d} (a/isolated-vertices gr))))))
+      (is (= #{:d} (a/isolated-vertices gr)))))
+  (testing "density ignores loops and parallel edges"
+    (let [gr (g/make-graph {:allow-multiple-edges? true
+                            :edges [[:a :b] [:a :b] [:a :a]]})]
+      (is (= 1.0 (a/density gr)))
+      (is (<= (a/density gr) 1.0)))))
 
 (deftest planarity-algorithms
   (let [cycle (g/graph [[:a :b] [:b :c] [:c :d] [:d :a]])]

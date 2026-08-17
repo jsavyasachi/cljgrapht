@@ -1023,13 +1023,21 @@
         [(set (.getPartition p 0)) (set (.getPartition p 1))]))))
 
 (defn density
-  "Graph density as m divided by the number of possible non-loop edges."
+  "Graph density from distinct non-loop endpoint pairs."
   [^Graph g]
   (let [n (.size (.vertexSet g))
-        m (.size (.edgeSet g))]
+        directed? (directed? g)
+        m (count
+           (into #{}
+                 (keep (fn [e]
+                         (let [u (.getEdgeSource g e)
+                               v (.getEdgeTarget g e)]
+                           (when (not= u v)
+                             (if directed? [u v] #{u v})))))
+                 (.edgeSet g)))]
     (if (< n 2)
       0.0
-      (double (if (directed? g)
+      (double (if directed?
                 (/ m (* n (dec n)))
                 (/ (* 2 m) (* n (dec n))))))))
 

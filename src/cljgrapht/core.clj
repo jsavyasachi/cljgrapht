@@ -50,7 +50,7 @@
           (.addVertex g u)
           (.addVertex g v)
           (let [edge (.addEdge g u v)]
-            (when (and weighted? (some? w))
+            (when (and edge weighted? (some? w))
               (.setEdgeWeight g edge (double w))))))
       g)))
 

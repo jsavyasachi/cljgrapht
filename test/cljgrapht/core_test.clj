@@ -140,6 +140,12 @@
       (is (= 2 (count (g/edges gr))))
       (g/remove-edge gr edge)
       (is (= 1 (count (g/all-edges gr :a :b))))))
+  (testing "rejected weighted duplicate edges preserve the first edge weight"
+    (let [gr (g/make-graph {:weighted? true
+                            :allow-self-loops? false
+                            :edges [[:a :b 3.0] [:a :b 7.0]]})]
+      (is (= 1 (count (g/edges gr))))
+      (is (= 3.0 (g/weight gr :a :b)))))
   (testing "self-loop policy is configurable"
     (let [gr (g/make-graph {:allow-self-loops? false})]
       (is (thrown? IllegalArgumentException (g/add-edge gr :a :a)))
