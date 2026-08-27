@@ -3,7 +3,7 @@
 All notable changes to this project are documented here. This change log follows
 the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## Unreleased
+## [1.2.0] - 2026-08-27
 
 ### Fixed
 
