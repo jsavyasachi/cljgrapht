@@ -146,6 +146,7 @@
                             :edges [[:a :b 3.0] [:a :b 7.0]]})]
       (is (= 1 (count (g/edges gr))))
       (is (= 3.0 (g/weight gr :a :b)))))
+
   (testing "self-loop policy is configurable"
     (let [gr (g/make-graph {:allow-self-loops? false})]
       (is (thrown? IllegalArgumentException (g/add-edge gr :a :a)))
@@ -163,6 +164,25 @@
     (let [gr (g/make-graph {:edge-class DefaultEdge})]
       (g/add-edge gr :a :b)
       (is (instance? DefaultEdge (g/get-edge gr :a :b))))))
+
+(deftest parallel-edge-weights-are-assigned-to-the-added-edge
+  (let [gr (g/make-graph {:directed? true
+                          :weighted? true
+                          :allow-multiple-edges? true})]
+    (g/add-edge gr :a :b 1.0)
+    (g/add-edge gr :a :b 9.0)
+    (is (= #{1.0 9.0}
+           (set (map #(.getEdgeWeight gr %) (g/all-edges gr :a :b)))))))
+
+(deftest rendered-edges-carry-edge-identity-as-metadata
+  (let [gr (g/make-graph {:allow-multiple-edges? true})
+        _ (g/add-edge gr :a :b)
+        _ (g/add-edge gr :a :b)
+        rendered (g/edges gr)]
+    (is (= 2 (count rendered)))
+    (is (= 2 (count (set (map #(-> % meta :edge) rendered)))))
+    (is (every? #(contains? (set (g/all-edges gr :a :b)) (-> % meta :edge))
+                rendered))))
 
 (deftest graph-views
   (testing "unmodifiable view rejects mutation"

@@ -186,6 +186,9 @@
 (defn- edge-pair [^Graph g e]
   [(.getEdgeSource g e) (.getEdgeTarget g e)])
 
+(defn- multigraph? [^Graph g]
+  (.. g getType isAllowingMultipleEdges))
+
 (defn- ensure-vertex [^Graph g operation vertex]
   (when-not (.containsVertex g vertex)
     (throw (unknown-vertex operation vertex))))
@@ -257,8 +260,9 @@
   [^Graph g terminals]
   (let [^SteinerTreeAlgorithm$SteinerTree tree
         (.getSteinerTree (KouMarkowskyBermanAlgorithm. g) terminals)]
-    {:edges (set (map #(edge-pair g %) (.getEdges tree)))
-     :weight (.getWeight tree)}))
+    (cond-> {:edges (set (map #(edge-pair g %) (.getEdges tree)))
+             :weight (.getWeight tree)}
+      (multigraph? g) (assoc :edge-objects (set (.getEdges tree))))))
 
 (defn line-graph
   "Return the line graph of `g`. With `weight-fn`, produce weighted line edges."
@@ -292,9 +296,10 @@
    (let [^MaximumDensitySubgraphAlgorithm algorithm
          (GoldbergMaximumDensitySubgraphAlgorithm. g s t (double epsilon))
          ^Graph result (.calculateDensest algorithm)]
-     {:vertices (set (.vertexSet result))
-      :edges (set (map #(edge-pair result %) (.edgeSet result)))
-      :density (.getDensity algorithm)})))
+     (cond-> {:vertices (set (.vertexSet result))
+              :edges (set (map #(edge-pair result %) (.edgeSet result)))
+              :density (.getDensity algorithm)}
+       (multigraph? result) (assoc :edge-objects (set (.edgeSet result)))))))
 
 (defn lca-set
   "Set of lowest common ancestors, possibly empty."
@@ -346,8 +351,10 @@
 
 (defn- path-result [^GraphPath p]
   (when p
-    {:path (vec (.getVertexList p))
-     :weight (.getWeight p)}))
+    (cond-> {:path (vec (.getVertexList p))
+             :weight (.getWeight p)}
+      (multigraph? (.getGraph p))
+      (assoc :edges (vec (.getEdgeList p))))))
 
 (defn- distances-result [^Graph g ^ShortestPathAlgorithm$SingleSourcePaths paths]
   (into {}
@@ -357,16 +364,19 @@
           [v w])))
 
 (defn- matching-result [^Graph g ^MatchingAlgorithm$Matching matching]
-  {:edges (set (map (fn [e] (edge-pair g e)) (.getEdges matching)))
-   :size (count (.getEdges matching))})
+  (cond-> {:edges (set (map (fn [e] (edge-pair g e)) (.getEdges matching)))
+           :size (count (.getEdges matching))}
+    (multigraph? g) (assoc :edge-objects (set (.getEdges matching)))))
 
 (defn- weighted-matching-result [^Graph g ^MatchingAlgorithm$Matching matching]
-  {:edges (set (map (fn [e] (edge-pair g e)) (.getEdges matching)))
-   :weight (.getWeight matching)})
+  (cond-> {:edges (set (map (fn [e] (edge-pair g e)) (.getEdges matching)))
+           :weight (.getWeight matching)}
+    (multigraph? g) (assoc :edge-objects (set (.getEdges matching)))))
 
 (defn- spanning-tree-result [^Graph g ^SpanningTreeAlgorithm$SpanningTree tree]
-  {:edges (set (map #(edge-pair g %) (.getEdges tree)))
-   :weight (.getWeight tree)})
+  (cond-> {:edges (set (map #(edge-pair g %) (.getEdges tree)))
+           :weight (.getWeight tree)}
+    (multigraph? g) (assoc :edge-objects (set (.getEdges tree)))))
 
 (defn- coloring-result [^VertexColoringAlgorithm algorithm]
   (let [^VertexColoringAlgorithm$Coloring coloring (.getColoring algorithm)]
@@ -742,8 +752,9 @@
   "Greedy multiplicative `(2k-1)`-spanner as `{:edges ... :weight w}`."
   [^Graph g k]
   (let [result (.getSpanner (GreedyMultiplicativeSpanner. g (int k)))]
-    {:edges (set (map #(edge-pair g %) result))
-     :weight (.getWeight result)}))
+    (cond-> {:edges (set (map #(edge-pair g %) result))
+             :weight (.getWeight result)}
+      (multigraph? g) (assoc :edge-objects (set result)))))
 
 (defn capacitated-spanning-tree
   "Esau-Williams capacitated spanning tree rooted at `root`. `demands` maps
@@ -1124,12 +1135,18 @@
   (ensure-directed g :max-flow)
   (let [^MaximumFlowAlgorithm$MaximumFlow flow (.getMaximumFlow
                                                 (PushRelabelMFImpl. g) source sink)]
-    {:value (double (.getValue flow))
-     :flow (into {}
-                 (for [[e f] (.getFlowMap flow)
-                       :let [f (double f)]
-                       :when (not (zero? f))]
-                   [(edge-pair g e) f]))}))
+    (cond-> {:value (double (.getValue flow))
+             :flow (into {}
+                         (for [[e f] (.getFlowMap flow)
+                               :let [f (double f)]
+                               :when (not (zero? f))]
+                           [(edge-pair g e) f]))}
+      (multigraph? g)
+      (assoc :edge-flow (into {}
+                              (for [[e f] (.getFlowMap flow)
+                                    :let [f (double f)]
+                                    :when (not (zero? f))]
+                                [e (double f)]))))))
 
 (defn min-cut
   "Minimum `source`->`sink` cut in directed graph `g` as
@@ -1144,12 +1161,18 @@
 (defn- maximum-flow-result [^Graph g algorithm source sink]
   (ensure-directed g :max-flow)
   (let [^MaximumFlowAlgorithm$MaximumFlow flow (.getMaximumFlow algorithm source sink)]
-    {:value (double (.getValue flow))
-     :flow (into {}
-                 (for [[e f] (.getFlowMap flow)
-                       :let [f (double f)]
-                       :when (not (zero? f))]
-                   [(edge-pair g e) f]))}))
+    (cond-> {:value (double (.getValue flow))
+             :flow (into {}
+                         (for [[e f] (.getFlowMap flow)
+                               :let [f (double f)]
+                               :when (not (zero? f))]
+                           [(edge-pair g e) f]))}
+      (multigraph? g)
+      (assoc :edge-flow (into {}
+                              (for [[e f] (.getFlowMap flow)
+                                    :let [f (double f)]
+                                    :when (not (zero? f))]
+                                [e (double f)]))))))
 
 (defn edmonds-karp-max-flow
   "Maximum flow with Edmonds-Karp."
@@ -1173,26 +1196,34 @@
              :or {supplies {} capacities {} lower-bounds {}}}]
   (ensure-directed g :min-cost-flow)
   (let [pair #(edge-pair g %)
+        value-for (fn [values e default]
+                    (or (get values e) (get values (pair e)) default))
         node-supply (reify Function
                       (apply [_ v] (int (get supplies v 0))))
         lower-bound (reify Function
-                      (apply [_ e] (int (get lower-bounds (pair e) 0))))
+                      (apply [_ e] (int (value-for lower-bounds e 0))))
         upper-bound (reify Function
                       (apply [_ e]
-                        (int (get capacities (pair e)
-                                  CapacityScalingMinimumCostFlow/CAP_INF))))
+                        (int (value-for capacities e
+                                        CapacityScalingMinimumCostFlow/CAP_INF))))
         cost (reify Function
                (apply [_ e] (double (.getEdgeWeight g e))))
         problem (MinimumCostFlowProblem$MinimumCostFlowProblemImpl.
                  g node-supply upper-bound lower-bound cost)
         ^MinimumCostFlowAlgorithm$MinimumCostFlow flow
         (.getMinimumCostFlow (CapacityScalingMinimumCostFlow.) problem)]
-    {:cost (.getCost flow)
-     :flow (into {}
-                 (for [[e f] (.getFlowMap flow)
-                       :let [f (double f)]
-                       :when (not (zero? f))]
-                   [(pair e) f]))}))
+    (cond-> {:cost (.getCost flow)
+             :flow (into {}
+                         (for [[e f] (.getFlowMap flow)
+                               :let [f (double f)]
+                               :when (not (zero? f))]
+                           [(pair e) f]))}
+      (multigraph? g)
+      (assoc :edge-flow (into {}
+                              (for [[e f] (.getFlowMap flow)
+                                    :let [f (double f)]
+                                    :when (not (zero? f))]
+                                [e (double f)]))))))
 
 (defn gomory-hu-tree
   "Gomory-Hu cut tree as weighted `[u v weight]` edges."

@@ -54,6 +54,20 @@ Leiningen (`project.clj`):
 Run tests with `clojure -M:test`. Build a jar with `clojure -T:build jar` and
 deploy to Clojars with `clojure -T:build deploy`.
 
+### Multigraph edge identity
+
+Graphs created with `:allow-multiple-edges? true` preserve parallel-edge identity
+in algorithm results. Path results (`shortest-path`, `astar`, Bellman-Ford,
+Yen, Suurballe, all-path, Eulerian, and Chinese-postman variants) include an
+`:edges` vector of the selected JGraphT edge objects. Matching and spanning
+results include `:edge-objects`, and flow results include `:edge-flow`, keyed by
+the actual edge objects. The existing endpoint-based `:edges` and `:flow` values
+remain available; for ordinary graphs result shapes are unchanged. Weighted
+`add-edge` assigns the weight to the exact newly added edge, so parallel edges
+can carry different weights safely. Core edge vectors from `edges`,
+`incident-edges`, `incoming-edges`, and `outgoing-edges` retain their existing
+shape and carry the edge object as `(:edge (meta edge-vector))`.
+
 ## Usage
 
 ```clojure

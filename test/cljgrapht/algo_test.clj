@@ -94,6 +94,18 @@
     (testing "unreachable returns nil"
       (is (nil? (a/shortest-path gr :d :a))))))
 
+(deftest shortest-path-preserves-edge-identity
+  (let [gr (g/make-graph {:directed? true
+                          :weighted? true
+                          :allow-multiple-edges? true})
+        _ (g/add-edge gr :a :b 1.0)
+        cheap (g/get-edge gr :a :b)
+        _ (g/add-edge gr :a :b 9.0)
+        result (a/shortest-path gr :a :b)]
+    (is (= [:a :b] (:path result)))
+    (is (= [cheap] (:edges result)))
+    (is (= 1.0 (:weight result)))))
+
 (deftest shortest-path-unweighted
   (let [gr (g/digraph [[:a :b] [:b :c] [:a :c]])]
     (testing "hop count via default unit weights"
@@ -394,6 +406,18 @@
     (is (number? (:weight (a/path-growing-weighted-matching k22))))
     (is (number? (:weight (a/greedy-weighted-matching k22))))))
 
+(deftest matching-preserves-parallel-edge-identity
+  (let [gr (g/make-graph {:allow-multiple-edges? true})
+        _ (g/add-edge gr :a :b)
+        first-edge (g/get-edge gr :a :b)
+        _ (g/add-edge gr :a :b)
+        result (a/maximum-matching gr)]
+    (is (= 1 (count (:edge-objects result))))
+    (is (contains? (set (g/all-edges gr :a :b))
+                   (first (:edge-objects result))))
+    (is (= #{[:a :b]} (:edges result)))
+    (is (= first-edge (first (:edge-objects result))))))
+
 (deftest dulmage-mendelsohn-decomposition
   (let [gr (g/graph [[:a :x] [:a :y] [:b :y]])
         result (a/dulmage-mendelsohn gr #{:a :b} #{:x :y})]
@@ -448,6 +472,20 @@
         tree (a/gomory-hu-tree gr)]
     (is (= 2.0 (:weight cut)))
     (is (= 2 (count (:edges tree))))))
+
+(deftest max-flow-preserves-parallel-edge-identity
+  (let [gr (g/make-graph {:directed? true
+                          :weighted? true
+                          :allow-multiple-edges? true})
+        _ (g/add-edge gr :s :t 2.0)
+        first-edge (g/get-edge gr :s :t)
+        _ (g/add-edge gr :s :t 5.0)
+        result (a/max-flow gr :s :t)]
+    (is (= 2 (count (:edge-flow result))))
+    (is (= #{first-edge}
+           (set (filter #(= 2.0 (get-in result [:edge-flow %]))
+                        (keys (:edge-flow result))))))
+    (is (= 7.0 (:value result)))))
 
 (deftest coloring
   (testing "triangle needs three colors"
