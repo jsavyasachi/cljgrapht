@@ -3,6 +3,24 @@
 All notable changes to this project are documented here. This change log follows
 the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## Unreleased
+
+### Fixed
+
+- Preserve JGraphT edge objects for parallel edges in path results (`shortest-path`,
+  `astar`, Bellman-Ford, Yen, Suurballe, all-path, Eulerian, and Chinese-postman
+  variants) via additive `:edges`; matching and spanning results via additive
+  `:edge-objects`; and max-flow/min-cost-flow results via additive `:edge-flow`.
+  Existing endpoint-based fields remain unchanged.
+- Assign weights in `core/add-edge` to the exact edge returned by JGraphT, so
+  weighted parallel edges do not overwrite one another.
+- Core edge-vector results (`edges`, `incident-edges`, `incoming-edges`, and
+  `outgoing-edges`) retain their shape and carry the edge object in metadata.
+
+All affected return additions are semver-minor and conditional on multigraph
+results; no existing simple-graph return shape changes, so no major bump is
+required.
+
 ## [1.1.2] - 2026-08-17
 
 ### Fixed

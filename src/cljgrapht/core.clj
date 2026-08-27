@@ -94,8 +94,10 @@
    (.addEdge g u v)
    g)
   (^Graph [^Graph g u v w]
-   (add-edge g u v)
-   (.setEdgeWeight g u v (double w))
+   (.addVertex g u)
+   (.addVertex g v)
+   (when-let [edge (.addEdge g u v)]
+     (.setEdgeWeight g edge (double w)))
    g))
 
 (defn weighted?
@@ -111,9 +113,10 @@
 (defn- render-edge [^Graph g edge]
   (let [u (.getEdgeSource g edge)
         v (.getEdgeTarget g edge)]
-    (if (weighted? g)
-      [u v (.getEdgeWeight g edge)]
-      [u v])))
+    (with-meta (if (weighted? g)
+                 [u v (.getEdgeWeight g edge)]
+                 [u v])
+      {:edge edge})))
 
 (defn vertices
   "The set of vertices in `g`."
@@ -121,7 +124,8 @@
   (set (.vertexSet g)))
 
 (defn edges
-  "A seq of edges in `g`: [u v] pairs, or [u v w] triples when `g` is weighted."
+  "A seq of edges in `g`: [u v] pairs, or [u v w] triples when `g` is weighted.
+  Each rendered vector carries its JGraphT edge object as `(:edge (meta edge))`."
   [^Graph g]
   (map #(render-edge g %) (.edgeSet g)))
 
