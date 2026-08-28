@@ -3,8 +3,32 @@
             [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.test :refer [deftest testing is]]
+            [clojure.test.check.clojure-test :refer [defspec]]
+            [clojure.test.check.generators :as gen]
+            [clojure.test.check.properties :as prop]
             [cljgrapht.core :as g])
   (:import (org.jgrapht.graph DefaultEdge)))
+
+(defspec generated-graph-preserves-edge-endpoints 50
+  (prop/for-all [edges (gen/vector (gen/tuple gen/keyword gen/keyword) 0 20)]
+    (let [vertices (set (g/vertices (g/graph edges)))]
+      (every? (fn [[u v]] (and (contains? vertices u) (contains? vertices v)))
+              edges))))
+
+(deftest adversarial-graph-inputs
+  (testing "empty graphs have no vertices or edges"
+    (let [gr (g/graph)]
+      (is (empty? (g/vertices gr)))
+      (is (empty? (g/edges gr)))))
+  (testing "self loops are retained when supported"
+    (let [gr (g/graph [[:a :a]])]
+      (is (= #{:a} (set (g/vertices gr))))
+      (is (= 1 (g/size gr)))))
+  (testing "parallel edges retain distinct edge identity"
+    (let [gr (g/make-graph {:allow-multiple-edges? true
+                            :edges [[:a :b] [:a :b]]})]
+      (is (= 2 (g/size gr)))
+      (is (= 2 (count (g/all-edges gr :a :b)))))))
 
 (deftest core-works-without-loom
   (testing "Loom is not a required runtime dependency"
