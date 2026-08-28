@@ -142,6 +142,11 @@
            (org.jgrapht.alg.decomposition DulmageMendelsohnDecomposition)
            (org.jgrapht.alg.clustering GreedyModularityAlgorithm
                                        UndirectedModularityMeasurer)
+           (org.jgrapht.alg.drawing LayoutAlgorithm2D
+                                    CircularLayoutAlgorithm2D
+                                    FRLayoutAlgorithm2D
+                                    RandomLayoutAlgorithm2D)
+           (org.jgrapht.alg.drawing.model Box2D MapLayoutModel2D Point2D)
            (org.jgrapht.alg.densesubgraph GoldbergMaximumDensitySubgraphAlgorithm)
            (org.jgrapht.alg.util Pair Triple)
            (org.jgrapht.traverse BreadthFirstIterator
@@ -1383,6 +1388,30 @@
   (ensure-undirected g :modularity)
   (.modularity (UndirectedModularityMeasurer. g)
                (java.util.ArrayList. (map set clusters))))
+
+(defn layout-2d
+  "Lay out vertices and return a map of vertex -> `[x y]` coordinates.
+  Algorithms are `:circular` (default), `:fr`, and `:random`."
+  ([^Graph g] (layout-2d g {}))
+  ([^Graph g {:keys [algorithm width height seed]
+              :or {algorithm :circular width 1.0 height 1.0}}]
+   (let [^Box2D area (Box2D/of (double width) (double height))
+         ^MapLayoutModel2D model (MapLayoutModel2D. area)
+         algorithm (case algorithm
+                     :circular (CircularLayoutAlgorithm2D.)
+                     :fr (FRLayoutAlgorithm2D.)
+                     :random (if (some? seed)
+                               (RandomLayoutAlgorithm2D. (long seed))
+                               (RandomLayoutAlgorithm2D.))
+                     (throw (ex-info "Unknown layout algorithm"
+                                     {:cljgrapht/error :unknown-algorithm
+                                      :cljgrapht/algorithm algorithm})))]
+     (.layout ^LayoutAlgorithm2D algorithm g model)
+     (into {}
+           (map (fn [entry]
+                  (let [v (.getKey entry) ^Point2D p (.getValue entry)]
+                    [v [(.getX p) (.getY p)]])))
+           (.collect model)))))
 
 (defn coreness
   "Map of vertex -> core number."

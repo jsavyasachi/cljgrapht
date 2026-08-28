@@ -49,6 +49,16 @@
     (when f
       (is (number? (f gr [#{:a :b :c} #{:d :e}]))))))
 
+(deftest graph-layout
+  (let [gr (g/graph [[:a :b] [:b :c]])
+        f (ns-resolve 'cljgrapht.algo 'layout-2d)]
+    (is (some? f))
+    (when f
+      (let [coords (f gr {:algorithm :circular :width 100 :height 80})]
+        (is (= #{:a :b :c} (set (keys coords))))
+        (is (every? #(and (= 2 (count %)) (every? number? %))
+                    (vals coords)))))))
+
 (deftest link-prediction
   (let [gr (g/graph [[:a :b] [:a :c] [:b :c] [:b :d]])]
     (is (= 1.0 (a/common-neighbors-score gr :a :d)))
