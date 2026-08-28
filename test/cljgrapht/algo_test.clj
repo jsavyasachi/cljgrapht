@@ -30,6 +30,14 @@
            (a/link-prediction-score gr :a :d {:algorithm :jaccard})))
     (is (= 1.0 (get (a/predict-links gr [[:a :d]]) [:a :d])))))
 
+(deftest additive-link-prediction-algorithms
+  (let [gr (g/graph [[:a :b] [:a :c] [:b :c] [:b :d]])]
+    (is (some? (ns-resolve 'cljgrapht.algo 'adamic-adar-index)))
+    (is (some? (ns-resolve 'cljgrapht.algo 'leicht-holme-newman-index)))
+    (when-let [f (ns-resolve 'cljgrapht.algo 'adamic-adar-index)]
+      (is (= (f gr :a :d)
+             (get (a/predict-links gr [[:a :d]] {:algorithm :adamic-adar}) [:a :d]))))))
+
 (deftest edge-betweenness-centrality
   (let [gr (g/graph [[:a :b] [:b :c]])
         f (ns-resolve 'cljgrapht.algo 'edge-betweenness-centrality)]

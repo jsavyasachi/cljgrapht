@@ -114,10 +114,12 @@
            (org.jgrapht.alg.partition BipartitePartitioning)
            (org.jgrapht.alg.independentset ChordalGraphIndependentSetFinder)
            (org.jgrapht.alg.linkprediction CommonNeighborsLinkPrediction
+                                          AdamicAdarIndexLinkPrediction
                                           HubDepressedIndexLinkPrediction
                                           HubPromotedIndexLinkPrediction
                                           JaccardCoefficientLinkPrediction
                                           PreferentialAttachmentLinkPrediction
+                                          LeichtHolmeNewmanIndexLinkPrediction
                                           ResourceAllocationIndexLinkPrediction
                                           SaltonIndexLinkPrediction
                                           SorensenIndexLinkPrediction)
@@ -205,6 +207,8 @@
     :hub-promoted (HubPromotedIndexLinkPrediction. g)
     :hub-depressed (HubDepressedIndexLinkPrediction. g)
     :preferential-attachment (PreferentialAttachmentLinkPrediction. g)
+    :adamic-adar (AdamicAdarIndexLinkPrediction. g)
+    :leicht-holme-newman (LeichtHolmeNewmanIndexLinkPrediction. g)
     (throw (ex-info "Unknown link prediction algorithm"
                     {:cljgrapht/error :unknown-algorithm
                      :cljgrapht/algorithm algorithm}))))
@@ -349,6 +353,10 @@
   (link-prediction-score g u v {:algorithm :hub-depressed}))
 (defn preferential-attachment-score [^Graph g u v]
   (link-prediction-score g u v {:algorithm :preferential-attachment}))
+(defn adamic-adar-index [^Graph g u v]
+  (link-prediction-score g u v {:algorithm :adamic-adar}))
+(defn leicht-holme-newman-index [^Graph g u v]
+  (link-prediction-score g u v {:algorithm :leicht-holme-newman}))
 (defn- path-result [^GraphPath p]
   (when p
     (cond-> {:path (vec (.getVertexList p))
