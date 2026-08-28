@@ -101,7 +101,8 @@ shape and carry the edge object as `(:edge (meta edge-vector))`.
 - Shortest paths: `shortest-path`, `shortest-path-length`, `astar`,
   `bellman-ford`, `bellman-ford-distances`,
   `all-pairs-shortest-path-length`, `johnson-all-pairs`,
-  `k-shortest-paths`, `all-simple-paths`
+  `k-shortest-paths`, `yen-k-shortest-paths`, `eppstein-k-shortest-paths`,
+  `bfs-shortest-path`, `dijkstra-many-to-many-paths`, `all-simple-paths`
 - Connectivity: `connected-components`, `strongly-connected-components`,
   `connected?`, `strongly-connected?`
 - Ordering & cycles: `topological-sort`, `dag?`, `cycle?`,
@@ -113,13 +114,16 @@ shape and carry the edge object as `(:edge (meta edge-vector))`.
 - Flow: `max-flow`, `min-cut` (push-relabel; edge weights are capacities)
 - Coloring: `coloring` (DSatur default; `:greedy`, `:largest-degree-first`,
   `:smallest-degree-last` via `:algorithm`), `greedy-coloring`
-- Link prediction: eight standard predictors via `link-prediction-score` and
+- Link prediction: ten standard predictors via `link-prediction-score` and
   `predict-links`
 - Lowest common ancestor: `lca` and `lca-set` with naive and rooted variants
 - Steiner trees: approximate weighted `steiner-tree`
 - Line graphs: `line-graph`, including optional edge-weight conversion
 - Dense subgraphs: `maximum-density-subgraph` with caller-provided sentinels
-- Centrality: `betweenness-centrality`, `closeness-centrality`, `pagerank`
+- Centrality: `betweenness-centrality`, `edge-betweenness-centrality`,
+  `closeness-centrality`, `pagerank`
+- Clustering and layouts: `clustering` with `:greedy-modularity`, `modularity`,
+  and `layout-2d` with circular, Fruchterman-Reingold, and random algorithms
 - Graph shape and scoring: `maximal-cliques`, `clustering-coefficient`,
   `global-clustering-coefficient`, `coreness`, `density`,
   `isolated-vertices`, `isomorphic?`
@@ -135,6 +139,7 @@ shape and carry the edge object as `(:edge (meta edge-vector))`.
 
 - DOT: `dot`, `write-dot!`, `read-dot`
 - GraphML: `graphml`, `write-graphml!`
+- TSPLIB: `read-tsplib`, `read-tsplib-tour`
 
 ## Loom interop
 
