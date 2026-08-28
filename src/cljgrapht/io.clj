@@ -25,7 +25,8 @@
                                     GraphMLImporter)
            (org.jgrapht.nio.json JSONExporter JSONImporter)
            (org.jgrapht.nio.lemon LemonExporter LemonExporter$Parameter)
-           (org.jgrapht.nio.matrix MatrixExporter MatrixExporter$Format)))
+           (org.jgrapht.nio.matrix MatrixExporter MatrixExporter$Format)
+           (org.jgrapht.nio.tsplib TSPLIBImporter TSPLIBImporter$Metadata)))
 
 (defn- valid-id? [^String s]
   (boolean (re-matches #"[A-Za-z_][A-Za-z0-9_]*|-?(\.[0-9]+|[0-9]+(\.[0-9]*)?)" s)))
@@ -109,6 +110,40 @@
     (instance? File x) (slurp x)
     (path-string? x) (slurp (jio/file x))
     :else (str x)))
+
+(defn- tsplib-metadata [^TSPLIBImporter$Metadata metadata]
+  (let [s (.getSpecification metadata)]
+    {:name (.getName s)
+     :type (.getType s)
+     :comments (vec (.getComments s))
+     :dimension (.getDimension s)
+     :capacity (.getCapacity s)
+     :edge-weight-type (.getEdgeWeightType s)
+     :edge-weight-format (.getEdgeWeightFormat s)
+     :edge-data-format (.getEdgeDataFormat s)
+     :node-coord-type (.getNodeCoordType s)
+     :display-data-type (.getDisplayDataType s)}))
+
+(defn read-tsplib
+  "Import a TSPLIB problem and return `{:graph graph :metadata metadata}`."
+  [path-or-string]
+  (let [^TSPLIBImporter importer (TSPLIBImporter.)
+        ^Graph graph (core/make-graph {:weighted? true
+                                       :vertex-supplier (let [n (atom 0)]
+                                                          #(swap! n inc))})]
+    (.importGraph importer graph (StringReader. (input-string path-or-string)))
+    {:graph graph :metadata (tsplib-metadata (.getMetadata importer))}))
+
+(defn read-tsplib-tour
+  "Load a TSPLIB tour against a problem, returning its vertex sequence."
+  [problem-or-path tour-or-path]
+  (let [^TSPLIBImporter importer (TSPLIBImporter.)
+        ^Graph graph (core/make-graph {:weighted? true
+                                       :vertex-supplier (let [n (atom 0)]
+                                                          #(swap! n inc))})]
+    (.importGraph importer graph (StringReader. (input-string problem-or-path)))
+    (vec (.importTour importer (.getMetadata importer)
+                      (StringReader. (input-string tour-or-path))))))
 
 (defn- directed-dot? [^String s]
   (boolean (re-find #"(?is)^\s*(strict\s+)?digraph\b" s)))
