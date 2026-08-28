@@ -79,11 +79,29 @@
 (defn- double-matrix [rows]
   (into-array (class (double-array 0)) (map double-array rows)))
 
+(defn- invalid-option [option value message]
+  (throw (ex-info message
+                  {:cljgrapht/error :invalid-option
+                   :cljgrapht/option option
+                   :cljgrapht/value value})))
+
+(defn- ensure-positive [option value]
+  (when-not (and (number? value) (pos? (long value)))
+    (invalid-option option value (str (name option) " must be positive")))
+  value)
+
+(defn- ensure-probability [option value]
+  (when-not (and (number? value) (<= 0.0 (double value) 1.0))
+    (invalid-option option value (str (name option) " must be between 0 and 1")))
+  value)
+
 (defn complete-graph
   "A new undirected complete graph with integer vertices 0..n-1."
   (^Graph [n]
+   (ensure-positive :n n)
    (generate (CompleteGraphGenerator. (int n))))
   (^Graph [n {:keys [directed?]}]
+   (ensure-positive :n n)
    (generate (CompleteGraphGenerator. (int n)) {:directed? directed?})))
 
 (defn ring-graph
@@ -179,8 +197,12 @@
 (defn gnp-random-graph
   "A new undirected Erdos-Renyi G(n,p) graph."
   (^Graph [n p]
+   (ensure-positive :n n)
+   (ensure-probability :p p)
    (generate (GnpRandomGraphGenerator. (int n) (double p))))
   (^Graph [n p {:keys [seed directed? self-loops?]}]
+   (ensure-positive :n n)
+   (ensure-probability :p p)
    (let [generator (if (some? seed)
                      (GnpRandomGraphGenerator. (int n) (double p) (long seed)
                                                (boolean self-loops?))

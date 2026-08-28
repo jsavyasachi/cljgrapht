@@ -14,6 +14,7 @@
       (is (= #{#{0 1} #{0 2} #{0 3} #{0 4} #{1 2}
                #{1 3} #{1 4} #{2 3} #{2 4} #{3 4}}
              (undirected-edge-set gr)))))
+
   (testing "ring graph"
     (let [gr (gen/ring-graph 5)]
       (is (= #{0 1 2 3 4} (g/vertices gr)))
@@ -31,6 +32,20 @@
       (is (= (set (range 12)) (g/vertices gr)))
       (is (= (+ (* 3 (dec 4)) (* (dec 3) 4))
              (count (g/edges gr)))))))
+
+(deftest generator-validation
+  (try
+    (gen/complete-graph 0)
+    (is false "expected invalid generator option")
+    (catch clojure.lang.ExceptionInfo e
+      (is (= :invalid-option (:cljgrapht/error (ex-data e))))
+      (is (= 0 (:cljgrapht/value (ex-data e))))))
+  (try
+    (gen/gnp-random-graph 4 1.5)
+    (is false "expected invalid probability")
+    (catch clojure.lang.ExceptionInfo e
+      (is (= :invalid-option (:cljgrapht/error (ex-data e))))
+      (is (= 1.5 (:cljgrapht/value (ex-data e)))))))
 
 (deftest seeded-random-generators
   (testing "the seed makes G(n,p) reproducible"
