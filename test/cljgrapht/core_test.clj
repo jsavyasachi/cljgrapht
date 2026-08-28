@@ -28,7 +28,11 @@
     (let [gr (g/make-graph {:allow-multiple-edges? true
                             :edges [[:a :b] [:a :b]]})]
       (is (= 2 (g/size gr)))
-      (is (= 2 (count (g/all-edges gr :a :b)))))))
+      (is (= 2 (count (g/all-edges gr :a :b))))))
+  (testing "weighted, disconnected cyclic inputs retain their structure"
+    (let [gr (g/weighted-digraph [[:a :b 2.5] [:b :a 3.5] [:c :d 1.0]])]
+      (is (= #{:a :b :c :d} (set (g/vertices gr))))
+      (is (= #{2.5 3.5 1.0} (set (map #(nth % 2) (g/edges gr))))))))
 
 (deftest core-works-without-loom
   (testing "Loom is not a required runtime dependency"
