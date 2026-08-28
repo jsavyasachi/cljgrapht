@@ -21,6 +21,8 @@
                                          ContractionHierarchyBidirectionalDijkstra
                                          DeltaSteppingShortestPath
                                          DijkstraShortestPath
+                                         DijkstraManyToManyShortestPaths
+                                         BFSShortestPath
                                          EppsteinKShortestPath
                                          FloydWarshallShortestPaths
                                          GraphMeasurer
@@ -422,6 +424,28 @@
   `:weight` is the hop count."
   [^Graph g src dst]
   (path-result (.getPath (DijkstraShortestPath. g) src dst)))
+
+(defn bfs-shortest-path
+  "Shortest unweighted path from `src` to `dst`, or nil when unreachable."
+  [^Graph g src dst]
+  (ensure-vertex g :bfs-shortest-path src)
+  (ensure-vertex g :bfs-shortest-path dst)
+  (path-result (.getPath (BFSShortestPath. g) src dst)))
+
+(defn dijkstra-many-to-many-paths
+  "Nested map of reachable shortest-path results for source and target sets."
+  [^Graph g sources targets]
+  (doseq [v (concat sources targets)]
+    (ensure-vertex g :dijkstra-many-to-many-paths v))
+  (let [paths (.getManyToManyPaths (DijkstraManyToManyShortestPaths. g)
+                                   (set sources) (set targets))]
+    (into {}
+          (for [src sources]
+            [src (into {}
+                       (keep (fn [dst]
+                               (when-let [p (.getPath paths src dst)]
+                                 [dst (path-result p)])))
+                       targets)]))))
 
 (defn astar
   "Cheapest path from `src` to `dst` as `{:path [v ...] :weight w}`, or nil if

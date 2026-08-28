@@ -31,6 +31,16 @@
     (when f
       (is (= 2 (count (f gr :a :d 2)))))))
 
+(deftest distinct-shortest-path-apis
+  (let [gr (g/digraph [[:a :b] [:b :c] [:a :c]])]
+    (is (some? (ns-resolve 'cljgrapht.algo 'bfs-shortest-path)))
+    (is (some? (ns-resolve 'cljgrapht.algo 'dijkstra-many-to-many-paths)))
+    (when-let [f (ns-resolve 'cljgrapht.algo 'bfs-shortest-path)]
+      (is (= {:path [:a :c] :weight 1.0} (f gr :a :c))))
+    (when-let [f (ns-resolve 'cljgrapht.algo 'dijkstra-many-to-many-paths)]
+      (is (= {:path [:a :c] :weight 1.0}
+             (get-in (f gr #{:a} #{:c}) [:a :c]))))))
+
 (deftest link-prediction
   (let [gr (g/graph [[:a :b] [:a :c] [:b :c] [:b :d]])]
     (is (= 1.0 (a/common-neighbors-score gr :a :d)))
