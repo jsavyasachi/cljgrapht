@@ -103,6 +103,7 @@
                                   SaturationDegreeColoring
                                   SmallestDegreeLastColoring)
            (org.jgrapht.alg.scoring BetweennessCentrality
+                                    EdgeBetweennessCentrality
                                     ClosenessCentrality
                                     ClusteringCoefficient
                                     Coreness
@@ -348,7 +349,6 @@
   (link-prediction-score g u v {:algorithm :hub-depressed}))
 (defn preferential-attachment-score [^Graph g u v]
   (link-prediction-score g u v {:algorithm :preferential-attachment}))
-
 (defn- path-result [^GraphPath p]
   (when p
     (cond-> {:path (vec (.getVertexList p))
@@ -1340,6 +1340,16 @@
   "Map of vertex -> betweenness centrality score."
   [^Graph g]
   (into {} (.getScores (BetweennessCentrality. g))))
+
+(defn edge-betweenness-centrality
+  "Map edge representations to edge betweenness centrality scores. Multigraphs
+  use their edge objects as keys to preserve parallel-edge identity."
+  [^Graph g]
+  (into {}
+        (map (fn [e]
+               [(if (multigraph? g) e (edge-pair g e))
+                (get (.getScores (EdgeBetweennessCentrality. g)) e)]))
+        (.edgeSet g)))
 
 (defn closeness-centrality
   "Map of vertex -> closeness centrality score."

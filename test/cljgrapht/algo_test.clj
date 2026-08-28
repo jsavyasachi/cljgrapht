@@ -30,6 +30,15 @@
            (a/link-prediction-score gr :a :d {:algorithm :jaccard})))
     (is (= 1.0 (get (a/predict-links gr [[:a :d]]) [:a :d])))))
 
+(deftest edge-betweenness-centrality
+  (let [gr (g/graph [[:a :b] [:b :c]])
+        f (ns-resolve 'cljgrapht.algo 'edge-betweenness-centrality)]
+    (is (some? f))
+    (when f
+      (let [scores (f gr)]
+        (is (= 2 (count scores)))
+        (is (= #{[:a :b] [:b :c]} (set (keys scores))))))))
+
 (defn- close?
   "True when `a` and `b` are within 1e-9 of each other."
   [a b]
