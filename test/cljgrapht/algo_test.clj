@@ -59,6 +59,19 @@
         (is (every? #(and (= 2 (count %)) (every? number? %))
                     (vals coords)))))))
 
+(deftest structured-algorithm-validation
+  (let [gr (g/graph [[:a :b]])]
+    (try
+      (a/shortest-path gr :missing :b)
+      (is false "expected unknown vertex")
+      (catch clojure.lang.ExceptionInfo e
+        (is (= :unknown-vertex (:cljgrapht/error (ex-data e))))))
+    (try
+      (a/yen-k-shortest-paths gr :a :b 0)
+      (is false "expected invalid k")
+      (catch clojure.lang.ExceptionInfo e
+        (is (= :invalid-option (:cljgrapht/error (ex-data e))))))))
+
 (deftest link-prediction
   (let [gr (g/graph [[:a :b] [:a :c] [:b :c] [:b :d]])]
     (is (= 1.0 (a/common-neighbors-score gr :a :d)))

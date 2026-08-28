@@ -206,6 +206,14 @@
   (when-not (.containsVertex g vertex)
     (throw (unknown-vertex operation vertex))))
 
+(defn- ensure-positive-int [value operation option]
+  (when-not (and (integer? value) (pos? value))
+    (throw (ex-info (str (name option) " must be a positive integer")
+                    {:cljgrapht/error :invalid-option
+                     :cljgrapht/operation operation
+                     :cljgrapht/option option
+                     :cljgrapht/value value}))))
+
 (defn- link-prediction-algorithm ^LinkPredictionAlgorithm
   [^Graph g algorithm]
   (case algorithm
@@ -430,6 +438,8 @@
   unreachable. Uses Dijkstra; unweighted graphs use unit edge weights, so
   `:weight` is the hop count."
   [^Graph g src dst]
+  (ensure-vertex g :shortest-path src)
+  (ensure-vertex g :shortest-path dst)
   (path-result (.getPath (DijkstraShortestPath. g) src dst)))
 
 (defn bfs-shortest-path
@@ -564,6 +574,9 @@
 (defn yen-k-shortest-paths
   "The `k` shortest loopless paths from `src` to `dst` with Yen's algorithm."
   [^Graph g src dst k]
+  (ensure-vertex g :yen-k-shortest-paths src)
+  (ensure-vertex g :yen-k-shortest-paths dst)
+  (ensure-positive-int k :yen-k-shortest-paths :k)
   (mapv path-result (.getPaths (YenKShortestPath. g) src dst (int k))))
 
 (defn eppstein-k-shortest-paths
