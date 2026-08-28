@@ -140,6 +140,8 @@
            (org.jgrapht.alg.similarity ZhangShashaTreeEditDistance)
            (org.jgrapht.alg.planar BoyerMyrvoldPlanarityInspector)
            (org.jgrapht.alg.decomposition DulmageMendelsohnDecomposition)
+           (org.jgrapht.alg.clustering GreedyModularityAlgorithm
+                                       UndirectedModularityMeasurer)
            (org.jgrapht.alg.densesubgraph GoldbergMaximumDensitySubgraphAlgorithm)
            (org.jgrapht.alg.util Pair Triple)
            (org.jgrapht.traverse BreadthFirstIterator
@@ -1355,7 +1357,7 @@
 
 (defn clustering
   "Partition vertices into clusters. Methods are `:label-propagation` (default),
-  `:girvan-newman`, and `:k-spanning-tree`; the latter two require `:k`."
+  `:girvan-newman`, `:k-spanning-tree`, and `:greedy-modularity`."
   ([^Graph g]
    (clustering g {}))
   ([^Graph g {:keys [method k] :or {method :label-propagation}}]
@@ -1367,12 +1369,20 @@
                       :cljgrapht/algorithm method})))
    (let [algorithm (case method
                      :label-propagation (LabelPropagationClustering. g)
+                     :greedy-modularity (GreedyModularityAlgorithm. g)
                      :girvan-newman (GirvanNewmanClustering. g (int k))
                      :k-spanning-tree (KSpanningTreeClustering. g (int k))
                      (throw (ex-info "Unknown clustering method"
                                      {:cljgrapht/error :unknown-algorithm
                                       :cljgrapht/algorithm method})))]
      (mapv set (.getClusters (.getClustering algorithm))))))
+
+(defn modularity
+  "Measure the modularity of an undirected graph partition."
+  [^Graph g clusters]
+  (ensure-undirected g :modularity)
+  (.modularity (UndirectedModularityMeasurer. g)
+               (java.util.ArrayList. (map set clusters))))
 
 (defn coreness
   "Map of vertex -> core number."

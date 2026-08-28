@@ -41,6 +41,14 @@
       (is (= {:path [:a :c] :weight 1.0}
              (get-in (f gr #{:a} #{:c}) [:a :c]))))))
 
+(deftest modularity-clustering
+  (let [gr (g/graph [[:a :b] [:b :c] [:c :d] [:d :e]])
+        f (ns-resolve 'cljgrapht.algo 'modularity)]
+    (is (some? f))
+    (is (seq (a/clustering gr {:method :greedy-modularity})))
+    (when f
+      (is (number? (f gr [#{:a :b :c} #{:d :e}]))))))
+
 (deftest link-prediction
   (let [gr (g/graph [[:a :b] [:a :c] [:b :c] [:b :d]])]
     (is (= 1.0 (a/common-neighbors-score gr :a :d)))
