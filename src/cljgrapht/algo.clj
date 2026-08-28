@@ -21,6 +21,7 @@
                                          ContractionHierarchyBidirectionalDijkstra
                                          DeltaSteppingShortestPath
                                          DijkstraShortestPath
+                                         EppsteinKShortestPath
                                          FloydWarshallShortestPaths
                                          GraphMeasurer
                                          JohnsonShortestPaths
@@ -533,6 +534,16 @@
   "The `k` shortest loopless paths from `src` to `dst` with Yen's algorithm."
   [^Graph g src dst k]
   (mapv path-result (.getPaths (YenKShortestPath. g) src dst (int k))))
+
+(defn eppstein-k-shortest-paths
+  "The `k` shortest paths from `src` to `dst` with Eppstein's algorithm."
+  [^Graph g src dst k]
+  (ensure-vertex g :eppstein-k-shortest-paths src)
+  (ensure-vertex g :eppstein-k-shortest-paths dst)
+  (when-not (pos? (int k))
+    (throw (ex-info "k must be positive"
+                    {:cljgrapht/error :invalid-option :cljgrapht/option :k :value k})))
+  (mapv path-result (.getPaths (EppsteinKShortestPath. g) src dst (int k))))
 
 (defn disjoint-shortest-paths
   "Up to `k` edge-disjoint shortest paths from `src` to `dst` with Suurballe."

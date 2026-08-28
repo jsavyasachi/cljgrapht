@@ -23,6 +23,14 @@
       (catch clojure.lang.ExceptionInfo e
         (is (= :unknown-vertex (:cljgrapht/error (ex-data e))))))))
 
+(deftest eppstein-k-shortest-paths
+  (let [gr (g/make-graph {:directed? true :weighted? true :allow-self-loops? false
+                          :edges [[:a :b 1] [:b :d 1] [:a :c 1] [:c :d 2]]})
+        f (ns-resolve 'cljgrapht.algo 'eppstein-k-shortest-paths)]
+    (is (some? f))
+    (when f
+      (is (= 2 (count (f gr :a :d 2)))))))
+
 (deftest link-prediction
   (let [gr (g/graph [[:a :b] [:a :c] [:b :c] [:b :d]])]
     (is (= 1.0 (a/common-neighbors-score gr :a :d)))
