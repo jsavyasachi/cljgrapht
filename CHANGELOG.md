@@ -5,6 +5,8 @@ the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-08-28
+
 ### Fixed
 
 - Standardize structured validation for core vertex/edge access, shortest-path
