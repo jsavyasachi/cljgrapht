@@ -72,6 +72,31 @@
       (catch clojure.lang.ExceptionInfo e
         (is (= :invalid-option (:cljgrapht/error (ex-data e))))))))
 
+(deftest path-and-flow-validation
+  (let [gr (g/digraph [[:a :b]])]
+    (doseq [[path-fn args] [[a/astar [:missing :b (constantly 0)]]
+                            [a/bellman-ford [:missing :b]]
+                            [a/bidirectional-shortest-path [:missing :b]]
+                            [a/delta-stepping-shortest-path [:missing :b]]
+                            [a/contraction-hierarchy-shortest-path [:missing :b]]
+                            [a/yen-k-shortest-paths [:missing :b 1]]
+                            [a/eppstein-k-shortest-paths [:missing :b 1]]]]
+      (try
+        (apply path-fn gr args)
+        (is false "expected unknown vertex")
+        (catch clojure.lang.ExceptionInfo e
+          (is (= :unknown-vertex (:cljgrapht/error (ex-data e)))))))
+    (try
+      (a/all-directed-paths gr :a :b {:max-length -1})
+      (is false "expected invalid max length")
+      (catch clojure.lang.ExceptionInfo e
+        (is (= :invalid-option (:cljgrapht/error (ex-data e))))))
+    (try
+      (a/minimum-st-cut gr :a :a)
+      (is false "expected distinct source and sink")
+      (catch clojure.lang.ExceptionInfo e
+        (is (= :invalid-source-sink (:cljgrapht/error (ex-data e))))))))
+
 (deftest link-prediction
   (let [gr (g/graph [[:a :b] [:a :c] [:b :c] [:b :d]])]
     (is (= 1.0 (a/common-neighbors-score gr :a :d)))

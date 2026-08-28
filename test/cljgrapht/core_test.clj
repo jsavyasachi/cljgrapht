@@ -81,6 +81,25 @@
       (is (= #{:c} (set (g/predecessors gr :a))))
       (is (= #{:a} (set (g/successors gr :c)))))))
 
+(deftest core-validation
+  (let [gr (g/weighted-digraph [[:a :b 2.0]])]
+    (doseq [operation [g/neighbors g/successors g/predecessors
+                       g/degree g/in-degree g/out-degree
+                       g/incident-edges g/incoming-edges g/outgoing-edges]]
+      (try
+        (operation gr :missing)
+        (is false "expected unknown vertex")
+        (catch clojure.lang.ExceptionInfo e
+          (is (= :unknown-vertex (:cljgrapht/error (ex-data e))))
+          (is (= :missing (:cljgrapht/vertex (ex-data e)))))))
+    (g/add-vertex gr :c)
+    (try
+      (g/weight gr :a :c)
+      (is false "expected unknown edge")
+      (catch clojure.lang.ExceptionInfo e
+        (is (= :unknown-edge (:cljgrapht/error (ex-data e))))
+        (is (= [:a :c] (:cljgrapht/edge (ex-data e))))))))
+
 (deftest undirected-neighbors
   (testing "undirected neighbors are symmetric"
     (let [gr (g/graph [[:a :b] [:a :c]])]
@@ -177,7 +196,12 @@
 
   (testing "self-loop policy is configurable"
     (let [gr (g/make-graph {:allow-self-loops? false})]
-      (is (thrown? IllegalArgumentException (g/add-edge gr :a :a)))
+      (try
+        (g/add-edge gr :a :a)
+        (is false "expected structured graph-operation error")
+        (catch clojure.lang.ExceptionInfo e
+          (is (= :graph-operation-failed (:cljgrapht/error (ex-data e))))
+          (is (instance? IllegalArgumentException (.getCause e)))))
       (is (true? (:simple? (g/graph-type gr))))))
   (testing "direction, weighting, edge class, and Clojure suppliers are accepted"
     (let [next-id (atom 0)

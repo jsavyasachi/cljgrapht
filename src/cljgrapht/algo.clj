@@ -214,6 +214,24 @@
                      :cljgrapht/option option
                      :cljgrapht/value value}))))
 
+(defn- ensure-nonnegative-int [value operation option]
+  (when-not (and (integer? value) (not (neg? value)))
+    (throw (ex-info (str (name option) " must be a nonnegative integer")
+                    {:cljgrapht/error :invalid-option
+                     :cljgrapht/operation operation
+                     :cljgrapht/option option
+                     :cljgrapht/value value}))))
+
+(defn- ensure-source-sink [^Graph g operation source sink]
+  (ensure-vertex g operation source)
+  (ensure-vertex g operation sink)
+  (when (= source sink)
+    (throw (ex-info "Source and sink must be different vertices"
+                    {:cljgrapht/error :invalid-source-sink
+                     :cljgrapht/operation operation
+                     :cljgrapht/source source
+                     :cljgrapht/sink sink}))))
+
 (defn- link-prediction-algorithm ^LinkPredictionAlgorithm
   [^Graph g algorithm]
   (case algorithm
@@ -270,17 +288,23 @@
 (defn link-prediction-score
   "Predict a link score between `u` and `v`."
   [^Graph g u v {:keys [algorithm] :or {algorithm :common-neighbors}}]
+  (ensure-vertex g :link-prediction-score u)
+  (ensure-vertex g :link-prediction-score v)
   (.predict (link-prediction-algorithm g algorithm) u v))
 
 (defn lca
   "Lowest common ancestor, or nil when none exists."
   ([^Graph g a b] (lca g a b {}))
   ([^Graph g a b opts]
+   (ensure-vertex g :lca a)
+   (ensure-vertex g :lca b)
    (.getLCA (lca-algorithm g (:algorithm opts :naive) opts) a b)))
 
 (defn steiner-tree
   "Approximate weighted Steiner tree spanning `terminals`."
   [^Graph g terminals]
+  (doseq [terminal terminals]
+    (ensure-vertex g :steiner-tree terminal))
   (let [^SteinerTreeAlgorithm$SteinerTree tree
         (.getSteinerTree (KouMarkowskyBermanAlgorithm. g) terminals)]
     (cond-> {:edges (set (map #(edge-pair g %) (.getEdges tree)))
@@ -349,6 +373,8 @@
    (let [^LinkPredictionAlgorithm predictor (link-prediction-algorithm g algorithm)
          ^ArrayList requests (ArrayList.)]
      (doseq [[u v] pairs]
+       (ensure-vertex g :predict-links u)
+       (ensure-vertex g :predict-links v)
        (.add requests (Pair/of u v)))
      (into {}
            (map (fn [^Triple result]
@@ -468,6 +494,8 @@
   "Cheapest path from `src` to `dst` as `{:path [v ...] :weight w}`, or nil if
   unreachable. Uses A* with `heuristic`, a function of `[vertex target]`."
   [^Graph g src dst heuristic]
+  (ensure-vertex g :astar src)
+  (ensure-vertex g :astar dst)
   (let [h (reify AStarAdmissibleHeuristic
             (getCostEstimate [_ v target]
               (double (heuristic v target))))]
@@ -477,12 +505,15 @@
   "Cheapest path from `src` to `dst` as `{:path [v ...] :weight w}`, or nil if
   unreachable. Supports negative edge weights but not negative cycles."
   [^Graph g src dst]
+  (ensure-vertex g :bellman-ford src)
+  (ensure-vertex g :bellman-ford dst)
   (path-result (.getPath (BellmanFordShortestPath. g) src dst)))
 
 (defn bellman-ford-distances
   "Map of every reachable vertex from `src` to its Bellman-Ford distance.
   Includes `src` with distance 0.0."
   [^Graph g src]
+  (ensure-vertex g :bellman-ford-distances src)
   (distances-result g (.getPaths (BellmanFordShortestPath. g) src)))
 
 (defn bfs
@@ -538,6 +569,9 @@
   "`k` shortest simple paths from `src` to `dst`, as vectors of
   `{:path [v ...] :weight w}` maps (Yen)."
   [^Graph g src dst k]
+  (ensure-vertex g :k-shortest-paths src)
+  (ensure-vertex g :k-shortest-paths dst)
+  (ensure-positive-int k :k-shortest-paths :k)
   (mapv path-result (.getPaths (YenKShortestPath. g) src dst (int k))))
 
 (defn all-simple-paths
@@ -545,16 +579,19 @@
   `{:path [v ...] :weight w}` maps."
   [^Graph g src dst]
   (ensure-directed g :all-simple-paths)
+  (ensure-source-sink g :all-simple-paths src dst)
   (mapv path-result (.getAllPaths (AllDirectedPaths. g) src dst true nil)))
 
 (defn bidirectional-shortest-path
   "Cheapest path from `src` to `dst` with bidirectional Dijkstra."
   [^Graph g src dst]
+  (ensure-source-sink g :bidirectional-shortest-path src dst)
   (path-result (.getPath (BidirectionalDijkstraShortestPath. g) src dst)))
 
 (defn delta-stepping-shortest-path
   "Cheapest path from `src` to `dst` with parallel delta-stepping."
   [^Graph g src dst]
+  (ensure-source-sink g :delta-stepping-shortest-path src dst)
   (let [^ThreadPoolExecutor executor (Executors/newFixedThreadPool 1)]
     (try
       (path-result (.getPath (DeltaSteppingShortestPath. g executor) src dst))
@@ -564,6 +601,7 @@
 (defn contraction-hierarchy-shortest-path
   "Cheapest path from `src` to `dst` with a contraction hierarchy."
   [^Graph g src dst]
+  (ensure-source-sink g :contraction-hierarchy-shortest-path src dst)
   (let [^ThreadPoolExecutor executor (Executors/newFixedThreadPool 1)]
     (try
       (path-result
@@ -593,6 +631,8 @@
   "Up to `k` edge-disjoint shortest paths from `src` to `dst` with Suurballe."
   [^Graph g src dst k]
   (ensure-directed g :disjoint-shortest-paths)
+  (ensure-source-sink g :disjoint-shortest-paths src dst)
+  (ensure-positive-int k :disjoint-shortest-paths :k)
   (mapv path-result
         (.getPaths (SuurballeKDisjointShortestPaths. g) src dst (int k))))
 
@@ -604,6 +644,9 @@
   ([^Graph g src dst {:keys [simple? max-length]
                       :or {simple? true}}]
    (ensure-directed g :all-directed-paths)
+   (ensure-source-sink g :all-directed-paths src dst)
+   (when (some? max-length)
+     (ensure-nonnegative-int max-length :all-directed-paths :max-length))
    (mapv path-result
          (.getAllPaths (AllDirectedPaths. g) src dst (boolean simple?)
                        (when (some? max-length) (Integer/valueOf (int max-length)))))))
@@ -637,6 +680,7 @@
 (defn strongly-connected-components
   "Seq of vertex sets, one per strongly-connected component (directed)."
   [^Graph g]
+  (ensure-directed g :strongly-connected-components)
   (map set (.stronglyConnectedSets (KosarajuStrongConnectivityInspector. g))))
 
 (defn gabow-strongly-connected-components
@@ -715,11 +759,13 @@
 (defn cycle?
   "True if the directed graph `g` contains a cycle."
   [^Graph g]
+  (ensure-directed g :cycle?)
   (.detectCycles (CycleDetector. g)))
 
 (defn vertices-on-cycles
   "Set of vertices that participate in at least one cycle of directed graph `g`."
   [^Graph g]
+  (ensure-directed g :vertices-on-cycles)
   (set (.findCycles (CycleDetector. g))))
 
 (defn dag?
@@ -785,6 +831,7 @@
   "Vector of vertices of directed acyclic graph `g` in topological order, or nil
   if `g` contains a cycle."
   [^Graph g]
+  (ensure-directed g :topological-sort)
   (when-not (cycle? g)
     (vec (iterator-seq (TopologicalOrderIterator. g)))))
 
@@ -1196,6 +1243,7 @@
   weights are capacities. `:flow` does not include zero-flow edges."
   [^Graph g source sink]
   (ensure-directed g :max-flow)
+  (ensure-source-sink g :max-flow source sink)
   (let [^MaximumFlowAlgorithm$MaximumFlow flow (.getMaximumFlow
                                                 (PushRelabelMFImpl. g) source sink)]
     (cond-> {:value (double (.getValue flow))
@@ -1216,6 +1264,7 @@
   `{:weight w :source-partition #{...} :sink-partition #{...}}` (Push-Relabel)."
   [^Graph g source sink]
   (ensure-directed g :min-cut)
+  (ensure-source-sink g :min-cut source sink)
   (let [impl (PushRelabelMFImpl. g)]
     {:weight (.calculateMinCut impl source sink)
      :source-partition (set (.getSourcePartition impl))
@@ -1223,6 +1272,7 @@
 
 (defn- maximum-flow-result [^Graph g algorithm source sink]
   (ensure-directed g :max-flow)
+  (ensure-source-sink g :max-flow source sink)
   (let [^MaximumFlowAlgorithm$MaximumFlow flow (.getMaximumFlow algorithm source sink)]
     (cond-> {:value (double (.getValue flow))
              :flow (into {}
@@ -1310,6 +1360,7 @@
   "Minimum source-to-sink cut with source and sink partitions."
   [^Graph g source sink]
   (ensure-directed g :minimum-st-cut)
+  (ensure-source-sink g :minimum-st-cut source sink)
   (let [impl (PushRelabelMFImpl. g)]
     {:weight (.calculateMinCut impl source sink)
      :source-partition (set (.getSourcePartition impl))

@@ -5,6 +5,12 @@ the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Standardize structured validation for core vertex/edge access, shortest-path
+  and flow source/sink arguments, directed algorithm preconditions, and selected
+  generator ranges. JGraphT operation failures now retain their original cause.
+
 ## [1.3.0] - 2026-08-27
 
 ### Added

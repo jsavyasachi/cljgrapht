@@ -91,13 +91,27 @@
   (^Graph [^Graph g u v]
    (.addVertex g u)
    (.addVertex g v)
-   (.addEdge g u v)
+   (try
+     (.addEdge g u v)
+     (catch RuntimeException e
+       (throw (ex-info "JGraphT graph operation failed"
+                       {:cljgrapht/error :graph-operation-failed
+                        :cljgrapht/operation :add-edge
+                        :cljgrapht/value [u v]}
+                       e))))
    g)
   (^Graph [^Graph g u v w]
    (.addVertex g u)
    (.addVertex g v)
-   (when-let [edge (.addEdge g u v)]
-     (.setEdgeWeight g edge (double w)))
+   (try
+     (when-let [edge (.addEdge g u v)]
+       (.setEdgeWeight g edge (double w)))
+     (catch RuntimeException e
+       (throw (ex-info "JGraphT graph operation failed"
+                       {:cljgrapht/error :graph-operation-failed
+                        :cljgrapht/operation :add-edge
+                        :cljgrapht/value [u v w]}
+                       e))))
    g))
 
 (defn weighted?
@@ -109,6 +123,20 @@
   "Whether `g` is directed."
   [^Graph g]
   (.. g getType isDirected))
+
+(defn- ensure-vertex [^Graph g operation vertex]
+  (when-not (.containsVertex g vertex)
+    (throw (ex-info "Unknown vertex"
+                    {:cljgrapht/error :unknown-vertex
+                     :cljgrapht/operation operation
+                     :cljgrapht/vertex vertex}))))
+
+(defn- ensure-edge [^Graph g operation u v]
+  (when-not (.containsEdge g u v)
+    (throw (ex-info "Unknown edge"
+                    {:cljgrapht/error :unknown-edge
+                     :cljgrapht/operation operation
+                     :cljgrapht/edge [u v]}))))
 
 (defn- render-edge [^Graph g edge]
   (let [u (.getEdgeSource g edge)
@@ -132,26 +160,33 @@
 (defn neighbors
   "Vertices adjacent to `v` in `g`. The edge direction does not matter."
   [^Graph g v]
+  (ensure-vertex g :neighbors v)
   (Graphs/neighborListOf g v))
 
 (defn successors
   "Vertices reachable from `v` by an outgoing edge in `g`."
   [^Graph g v]
+  (ensure-vertex g :successors v)
   (Graphs/successorListOf g v))
 
 (defn predecessors
   "Vertices with an edge into `v` in `g`."
   [^Graph g v]
+  (ensure-vertex g :predecessors v)
   (Graphs/predecessorListOf g v))
 
 (defn weight
   "The weight of the edge `u -> v` in `g`."
   [^Graph g u v]
+  (ensure-vertex g :weight u)
+  (ensure-vertex g :weight v)
+  (ensure-edge g :weight u v)
   (.getEdgeWeight g (.getEdge g u v)))
 
 (defn remove-vertex
   "Remove vertex `v` and its incident edges from `g`. Returns `g`."
   ^Graph [^Graph g v]
+  (ensure-vertex g :remove-vertex v)
   (.removeVertex g v)
   g)
 
@@ -177,31 +212,37 @@
 (defn degree
   "The degree of vertex `v` in `g`."
   [^Graph g v]
+  (ensure-vertex g :degree v)
   (.degreeOf g v))
 
 (defn in-degree
   "The incoming degree of vertex `v` in `g`."
   [^Graph g v]
+  (ensure-vertex g :in-degree v)
   (.inDegreeOf g v))
 
 (defn out-degree
   "The outgoing degree of vertex `v` in `g`."
   [^Graph g v]
+  (ensure-vertex g :out-degree v)
   (.outDegreeOf g v))
 
 (defn incident-edges
   "A seq of rendered edges incident to vertex `v` in `g`."
   [^Graph g v]
+  (ensure-vertex g :incident-edges v)
   (map #(render-edge g %) (.edgesOf g v)))
 
 (defn incoming-edges
   "A seq of rendered edges incoming to vertex `v` in `g`."
   [^Graph g v]
+  (ensure-vertex g :incoming-edges v)
   (map #(render-edge g %) (.incomingEdgesOf g v)))
 
 (defn outgoing-edges
   "A seq of rendered edges outgoing from vertex `v` in `g`."
   [^Graph g v]
+  (ensure-vertex g :outgoing-edges v)
   (map #(render-edge g %) (.outgoingEdgesOf g v)))
 
 (defn edge-source
