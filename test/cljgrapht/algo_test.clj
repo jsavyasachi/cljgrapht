@@ -23,12 +23,78 @@
       (catch clojure.lang.ExceptionInfo e
         (is (= :unknown-vertex (:cljgrapht/error (ex-data e))))))))
 
+(deftest eppstein-k-shortest-paths
+  (let [gr (g/make-graph {:directed? true :weighted? true :allow-self-loops? false
+                          :edges [[:a :b 1] [:b :d 1] [:a :c 1] [:c :d 2]]})
+        f (ns-resolve 'cljgrapht.algo 'eppstein-k-shortest-paths)]
+    (is (some? f))
+    (when f
+      (is (= 2 (count (f gr :a :d 2)))))))
+
+(deftest distinct-shortest-path-apis
+  (let [gr (g/digraph [[:a :b] [:b :c] [:a :c]])]
+    (is (some? (ns-resolve 'cljgrapht.algo 'bfs-shortest-path)))
+    (is (some? (ns-resolve 'cljgrapht.algo 'dijkstra-many-to-many-paths)))
+    (when-let [f (ns-resolve 'cljgrapht.algo 'bfs-shortest-path)]
+      (is (= {:path [:a :c] :weight 1.0} (f gr :a :c))))
+    (when-let [f (ns-resolve 'cljgrapht.algo 'dijkstra-many-to-many-paths)]
+      (is (= {:path [:a :c] :weight 1.0}
+             (get-in (f gr #{:a} #{:c}) [:a :c]))))))
+
+(deftest modularity-clustering
+  (let [gr (g/graph [[:a :b] [:b :c] [:c :d] [:d :e]])
+        f (ns-resolve 'cljgrapht.algo 'modularity)]
+    (is (some? f))
+    (is (seq (a/clustering gr {:method :greedy-modularity})))
+    (when f
+      (is (number? (f gr [#{:a :b :c} #{:d :e}]))))))
+
+(deftest graph-layout
+  (let [gr (g/graph [[:a :b] [:b :c]])
+        f (ns-resolve 'cljgrapht.algo 'layout-2d)]
+    (is (some? f))
+    (when f
+      (let [coords (f gr {:algorithm :circular :width 100 :height 80})]
+        (is (= #{:a :b :c} (set (keys coords))))
+        (is (every? #(and (= 2 (count %)) (every? number? %))
+                    (vals coords)))))))
+
+(deftest structured-algorithm-validation
+  (let [gr (g/graph [[:a :b]])]
+    (try
+      (a/shortest-path gr :missing :b)
+      (is false "expected unknown vertex")
+      (catch clojure.lang.ExceptionInfo e
+        (is (= :unknown-vertex (:cljgrapht/error (ex-data e))))))
+    (try
+      (a/yen-k-shortest-paths gr :a :b 0)
+      (is false "expected invalid k")
+      (catch clojure.lang.ExceptionInfo e
+        (is (= :invalid-option (:cljgrapht/error (ex-data e))))))))
+
 (deftest link-prediction
   (let [gr (g/graph [[:a :b] [:a :c] [:b :c] [:b :d]])]
     (is (= 1.0 (a/common-neighbors-score gr :a :d)))
     (is (= (a/jaccard-coefficient gr :a :d)
            (a/link-prediction-score gr :a :d {:algorithm :jaccard})))
     (is (= 1.0 (get (a/predict-links gr [[:a :d]]) [:a :d])))))
+
+(deftest additive-link-prediction-algorithms
+  (let [gr (g/graph [[:a :b] [:a :c] [:b :c] [:b :d]])]
+    (is (some? (ns-resolve 'cljgrapht.algo 'adamic-adar-index)))
+    (is (some? (ns-resolve 'cljgrapht.algo 'leicht-holme-newman-index)))
+    (when-let [f (ns-resolve 'cljgrapht.algo 'adamic-adar-index)]
+      (is (= (f gr :a :d)
+             (get (a/predict-links gr [[:a :d]] {:algorithm :adamic-adar}) [:a :d]))))))
+
+(deftest edge-betweenness-centrality
+  (let [gr (g/graph [[:a :b] [:b :c]])
+        f (ns-resolve 'cljgrapht.algo 'edge-betweenness-centrality)]
+    (is (some? f))
+    (when f
+      (let [scores (f gr)]
+        (is (= 2 (count scores)))
+        (is (= #{[:a :b] [:b :c]} (set (keys scores))))))))
 
 (defn- close?
   "True when `a` and `b` are within 1e-9 of each other."

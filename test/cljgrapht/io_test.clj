@@ -7,6 +7,19 @@
 (defn- undirected-edge-set [gr]
   (set (map set (g/edges gr))))
 
+(deftest tsplib-import-and-tour
+  (let [problem (str "NAME: tiny\nTYPE: TSP\nDIMENSION: 3\n"
+                     "EDGE_WEIGHT_TYPE: EUC_2D\nNODE_COORD_SECTION\n"
+                     "1 0 0\n2 3 0\n3 0 4\nEOF\n")
+        f (ns-resolve 'cljgrapht.io 'read-tsplib)]
+    (is (some? f))
+    (when f
+      (let [{:keys [graph metadata]} (f problem)]
+        (is (= 3 (count (g/vertices graph))))
+        (is (= "tiny" (:name metadata)))
+        (is (= [1 2 3] ((ns-resolve 'cljgrapht.io 'read-tsplib-tour)
+                        problem "TOUR_SECTION\n1\n2\n3\n-1\nEOF\n")))))))
+
 (deftest dot-export-and-import
   (let [gr (g/graph [[:a :b] [:b :c]])
         s (gio/dot gr)

@@ -3,6 +3,17 @@
 All notable changes to this project are documented here. This change log follows
 the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## [Unreleased]
+
+### Added
+
+- Edge betweenness centrality, modularity clustering and modularity scoring.
+- Adamic-Adar and Leicht-Holme-Newman link prediction.
+- BFS and many-to-many Dijkstra shortest paths, plus Eppstein k-shortest paths.
+- TSPLIB problem and tour import, and 2D graph layout coordinate helpers.
+- Structured validation for core shortest-path and Yen path options, with
+  generated and adversarial graph coverage.
+
 ## [1.2.0] - 2026-08-27
 
 ### Fixed

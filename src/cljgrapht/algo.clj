@@ -21,6 +21,9 @@
                                          ContractionHierarchyBidirectionalDijkstra
                                          DeltaSteppingShortestPath
                                          DijkstraShortestPath
+                                         DijkstraManyToManyShortestPaths
+                                         BFSShortestPath
+                                         EppsteinKShortestPath
                                          FloydWarshallShortestPaths
                                          GraphMeasurer
                                          JohnsonShortestPaths
@@ -103,6 +106,7 @@
                                   SaturationDegreeColoring
                                   SmallestDegreeLastColoring)
            (org.jgrapht.alg.scoring BetweennessCentrality
+                                    EdgeBetweennessCentrality
                                     ClosenessCentrality
                                     ClusteringCoefficient
                                     Coreness
@@ -113,10 +117,12 @@
            (org.jgrapht.alg.partition BipartitePartitioning)
            (org.jgrapht.alg.independentset ChordalGraphIndependentSetFinder)
            (org.jgrapht.alg.linkprediction CommonNeighborsLinkPrediction
+                                          AdamicAdarIndexLinkPrediction
                                           HubDepressedIndexLinkPrediction
                                           HubPromotedIndexLinkPrediction
                                           JaccardCoefficientLinkPrediction
                                           PreferentialAttachmentLinkPrediction
+                                          LeichtHolmeNewmanIndexLinkPrediction
                                           ResourceAllocationIndexLinkPrediction
                                           SaltonIndexLinkPrediction
                                           SorensenIndexLinkPrediction)
@@ -134,6 +140,13 @@
            (org.jgrapht.alg.similarity ZhangShashaTreeEditDistance)
            (org.jgrapht.alg.planar BoyerMyrvoldPlanarityInspector)
            (org.jgrapht.alg.decomposition DulmageMendelsohnDecomposition)
+           (org.jgrapht.alg.clustering GreedyModularityAlgorithm
+                                       UndirectedModularityMeasurer)
+           (org.jgrapht.alg.drawing LayoutAlgorithm2D
+                                    CircularLayoutAlgorithm2D
+                                    FRLayoutAlgorithm2D
+                                    RandomLayoutAlgorithm2D)
+           (org.jgrapht.alg.drawing.model Box2D MapLayoutModel2D Point2D)
            (org.jgrapht.alg.densesubgraph GoldbergMaximumDensitySubgraphAlgorithm)
            (org.jgrapht.alg.util Pair Triple)
            (org.jgrapht.traverse BreadthFirstIterator
@@ -193,6 +206,14 @@
   (when-not (.containsVertex g vertex)
     (throw (unknown-vertex operation vertex))))
 
+(defn- ensure-positive-int [value operation option]
+  (when-not (and (integer? value) (pos? value))
+    (throw (ex-info (str (name option) " must be a positive integer")
+                    {:cljgrapht/error :invalid-option
+                     :cljgrapht/operation operation
+                     :cljgrapht/option option
+                     :cljgrapht/value value}))))
+
 (defn- link-prediction-algorithm ^LinkPredictionAlgorithm
   [^Graph g algorithm]
   (case algorithm
@@ -204,6 +225,8 @@
     :hub-promoted (HubPromotedIndexLinkPrediction. g)
     :hub-depressed (HubDepressedIndexLinkPrediction. g)
     :preferential-attachment (PreferentialAttachmentLinkPrediction. g)
+    :adamic-adar (AdamicAdarIndexLinkPrediction. g)
+    :leicht-holme-newman (LeichtHolmeNewmanIndexLinkPrediction. g)
     (throw (ex-info "Unknown link prediction algorithm"
                     {:cljgrapht/error :unknown-algorithm
                      :cljgrapht/algorithm algorithm}))))
@@ -348,7 +371,10 @@
   (link-prediction-score g u v {:algorithm :hub-depressed}))
 (defn preferential-attachment-score [^Graph g u v]
   (link-prediction-score g u v {:algorithm :preferential-attachment}))
-
+(defn adamic-adar-index [^Graph g u v]
+  (link-prediction-score g u v {:algorithm :adamic-adar}))
+(defn leicht-holme-newman-index [^Graph g u v]
+  (link-prediction-score g u v {:algorithm :leicht-holme-newman}))
 (defn- path-result [^GraphPath p]
   (when p
     (cond-> {:path (vec (.getVertexList p))
@@ -412,7 +438,31 @@
   unreachable. Uses Dijkstra; unweighted graphs use unit edge weights, so
   `:weight` is the hop count."
   [^Graph g src dst]
+  (ensure-vertex g :shortest-path src)
+  (ensure-vertex g :shortest-path dst)
   (path-result (.getPath (DijkstraShortestPath. g) src dst)))
+
+(defn bfs-shortest-path
+  "Shortest unweighted path from `src` to `dst`, or nil when unreachable."
+  [^Graph g src dst]
+  (ensure-vertex g :bfs-shortest-path src)
+  (ensure-vertex g :bfs-shortest-path dst)
+  (path-result (.getPath (BFSShortestPath. g) src dst)))
+
+(defn dijkstra-many-to-many-paths
+  "Nested map of reachable shortest-path results for source and target sets."
+  [^Graph g sources targets]
+  (doseq [v (concat sources targets)]
+    (ensure-vertex g :dijkstra-many-to-many-paths v))
+  (let [paths (.getManyToManyPaths (DijkstraManyToManyShortestPaths. g)
+                                   (set sources) (set targets))]
+    (into {}
+          (for [src sources]
+            [src (into {}
+                       (keep (fn [dst]
+                               (when-let [p (.getPath paths src dst)]
+                                 [dst (path-result p)])))
+                       targets)]))))
 
 (defn astar
   "Cheapest path from `src` to `dst` as `{:path [v ...] :weight w}`, or nil if
@@ -524,7 +574,20 @@
 (defn yen-k-shortest-paths
   "The `k` shortest loopless paths from `src` to `dst` with Yen's algorithm."
   [^Graph g src dst k]
+  (ensure-vertex g :yen-k-shortest-paths src)
+  (ensure-vertex g :yen-k-shortest-paths dst)
+  (ensure-positive-int k :yen-k-shortest-paths :k)
   (mapv path-result (.getPaths (YenKShortestPath. g) src dst (int k))))
+
+(defn eppstein-k-shortest-paths
+  "The `k` shortest paths from `src` to `dst` with Eppstein's algorithm."
+  [^Graph g src dst k]
+  (ensure-vertex g :eppstein-k-shortest-paths src)
+  (ensure-vertex g :eppstein-k-shortest-paths dst)
+  (when-not (pos? (int k))
+    (throw (ex-info "k must be positive"
+                    {:cljgrapht/error :invalid-option :cljgrapht/option :k :value k})))
+  (mapv path-result (.getPaths (EppsteinKShortestPath. g) src dst (int k))))
 
 (defn disjoint-shortest-paths
   "Up to `k` edge-disjoint shortest paths from `src` to `dst` with Suurballe."
@@ -1312,7 +1375,7 @@
 
 (defn clustering
   "Partition vertices into clusters. Methods are `:label-propagation` (default),
-  `:girvan-newman`, and `:k-spanning-tree`; the latter two require `:k`."
+  `:girvan-newman`, `:k-spanning-tree`, and `:greedy-modularity`."
   ([^Graph g]
    (clustering g {}))
   ([^Graph g {:keys [method k] :or {method :label-propagation}}]
@@ -1324,12 +1387,44 @@
                       :cljgrapht/algorithm method})))
    (let [algorithm (case method
                      :label-propagation (LabelPropagationClustering. g)
+                     :greedy-modularity (GreedyModularityAlgorithm. g)
                      :girvan-newman (GirvanNewmanClustering. g (int k))
                      :k-spanning-tree (KSpanningTreeClustering. g (int k))
                      (throw (ex-info "Unknown clustering method"
                                      {:cljgrapht/error :unknown-algorithm
                                       :cljgrapht/algorithm method})))]
      (mapv set (.getClusters (.getClustering algorithm))))))
+
+(defn modularity
+  "Measure the modularity of an undirected graph partition."
+  [^Graph g clusters]
+  (ensure-undirected g :modularity)
+  (.modularity (UndirectedModularityMeasurer. g)
+               (java.util.ArrayList. (map set clusters))))
+
+(defn layout-2d
+  "Lay out vertices and return a map of vertex -> `[x y]` coordinates.
+  Algorithms are `:circular` (default), `:fr`, and `:random`."
+  ([^Graph g] (layout-2d g {}))
+  ([^Graph g {:keys [algorithm width height seed]
+              :or {algorithm :circular width 1.0 height 1.0}}]
+   (let [^Box2D area (Box2D/of (double width) (double height))
+         ^MapLayoutModel2D model (MapLayoutModel2D. area)
+         algorithm (case algorithm
+                     :circular (CircularLayoutAlgorithm2D.)
+                     :fr (FRLayoutAlgorithm2D.)
+                     :random (if (some? seed)
+                               (RandomLayoutAlgorithm2D. (long seed))
+                               (RandomLayoutAlgorithm2D.))
+                     (throw (ex-info "Unknown layout algorithm"
+                                     {:cljgrapht/error :unknown-algorithm
+                                      :cljgrapht/algorithm algorithm})))]
+     (.layout ^LayoutAlgorithm2D algorithm g model)
+     (into {}
+           (map (fn [entry]
+                  (let [v (.getKey entry) ^Point2D p (.getValue entry)]
+                    [v [(.getX p) (.getY p)]])))
+           (.collect model)))))
 
 (defn coreness
   "Map of vertex -> core number."
@@ -1340,6 +1435,16 @@
   "Map of vertex -> betweenness centrality score."
   [^Graph g]
   (into {} (.getScores (BetweennessCentrality. g))))
+
+(defn edge-betweenness-centrality
+  "Map edge representations to edge betweenness centrality scores. Multigraphs
+  use their edge objects as keys to preserve parallel-edge identity."
+  [^Graph g]
+  (into {}
+        (map (fn [e]
+               [(if (multigraph? g) e (edge-pair g e))
+                (get (.getScores (EdgeBetweennessCentrality. g)) e)]))
+        (.edgeSet g)))
 
 (defn closeness-centrality
   "Map of vertex -> closeness centrality score."
