@@ -10,36 +10,4 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        jdk: ['17', '21']
-        clojure: ['1.10', '1.11', '1.12']
-    name: jdk ${{ matrix.jdk }} / clojure ${{ matrix.clojure }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: ${{ matrix.jdk }}
-      - uses: DeLaGuardo/setup-clojure@13.6.1
-        with:
-          cli: latest
-      - uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: m2-${{ hashFiles('deps.edn') }}
-          restore-keys: m2-
-      - run: clojure -M:${{ matrix.clojure }}:test
-
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install clj-kondo
-        run: |
-          curl -sSL https://raw.githubusercontent.com/clj-kondo/clj-kondo/v2026.08.04/script/install-clj-kondo | bash -s -- --dir "$HOME/.local/bin" --version 2026.08.04
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: Lint
-        run: clj-kondo --lint src test --fail-level error
+    uses: ./.github/workflows/test-matrix.yml
