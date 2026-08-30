@@ -5,6 +5,8 @@ the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-08-30
+
 ### Fixed
 
 - `loom/add-edges*` and `loom/transpose` kept only one weight per vertex pair on
