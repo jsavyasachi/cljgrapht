@@ -3,7 +3,11 @@
             [cljgrapht.core :as g]
             [cljgrapht.loom]
             [loom.alg :as alg]
-            [loom.graph :as lg]))
+            [loom.graph :as lg])
+  (:import (org.jgrapht Graph)))
+
+(defn- edge-weights [^Graph g]
+  (sort (map #(.getEdgeWeight g %) (.edgeSet g))))
 
 (defn- edge-set [edges]
   (set (map vec edges)))
@@ -103,3 +107,37 @@
     (let [gr (g/digraph [[:a :b] [:c :d]])]
       (is (= #{#{:a :b} #{:c :d}}
              (set (map set (alg/connected-components gr))))))))
+
+(deftest add-edges-keeps-per-edge-weights-on-multigraphs
+  (testing "a single batch of parallel edges keeps every weight"
+    (let [gr (g/make-graph {:weighted? true :allow-multiple-edges? true})]
+      (lg/add-edges* gr [[:a :b 1.0] [:a :b 2.0] [:a :b 3.0]])
+      (is (= 3 (count (.edgeSet ^Graph gr))))
+      (is (= [1.0 2.0 3.0] (edge-weights gr)))))
+  (testing "repeated calls keep every weight"
+    (let [gr (g/make-graph {:directed? true
+                            :weighted? true
+                            :allow-multiple-edges? true})]
+      (lg/add-edges* gr [[:a :b 1.0]])
+      (lg/add-edges* gr [[:a :b 2.0]])
+      (lg/add-edges* gr [[:a :b 3.0]])
+      (lg/add-edges* gr [[:a :b 4.0]])
+      (is (= 4 (count (.edgeSet ^Graph gr))))
+      (is (= [1.0 2.0 3.0 4.0] (edge-weights gr)))))
+  (testing "re-adding an edge on a simple graph updates its weight"
+    (let [gr (g/weighted-digraph)]
+      (lg/add-edges* gr [[:a :b 1.0]])
+      (lg/add-edges* gr [[:a :b 5.0]])
+      (is (= 1 (count (.edgeSet ^Graph gr))))
+      (is (= 5.0 (lg/weight* gr :a :b))))))
+
+(deftest transpose-keeps-per-edge-weights-on-multigraphs
+  (let [gr (g/make-graph {:directed? true
+                          :weighted? true
+                          :allow-multiple-edges? true})]
+    (lg/add-edges* gr [[:a :b 1.0] [:a :b 2.0] [:a :b 3.0] [:b :c 4.0]])
+    (let [tr (lg/transpose gr)]
+      (is (= 4 (count (.edgeSet ^Graph tr))))
+      (is (= [1.0 2.0 3.0 4.0] (edge-weights tr)))
+      (is (= #{[:b :a] [:c :b]} (edge-set (lg/edges tr))))
+      (is (= [1.0 2.0 3.0 4.0] (edge-weights gr))))))

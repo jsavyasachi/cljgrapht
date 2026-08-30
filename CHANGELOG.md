@@ -5,6 +5,13 @@ the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `loom/add-edges*` and `loom/transpose` kept only one weight per vertex pair on
+  multigraphs. Weights are now set on the edge object, so parallel edges keep
+  their own weight. `loom/transpose` also mirrors the source graph's multiple
+  edge and self loop settings instead of dropping parallel edges.
+
 ## [1.4.0] - 2026-08-28
 
 ### Fixed

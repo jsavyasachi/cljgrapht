@@ -277,7 +277,13 @@
             :cljgrapht/graph-type (.getType g)}))
 
 (defn set-weight
-  "Set the weight of edge `u -> v` to `w`. Returns `g`."
+  "Set the weight of edge `u -> v` to `w`. Returns `g`.
+
+  On a graph that allows multiple edges this updates an arbitrary edge among
+  the parallel edges from `u` to `v`, because the vertex pair does not name one
+  of them. To set the weight of a specific parallel edge, get the edge objects
+  with `all-edges` and call `.setEdgeWeight` on the graph with the edge you
+  want."
   ^Graph [^Graph g u v w]
   (when-not (weighted? g)
     (throw (not-weighted g :set-weight)))

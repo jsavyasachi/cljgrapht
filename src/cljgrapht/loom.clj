@@ -10,7 +10,7 @@
   records behave differently."
   (:require [cljgrapht.core :as core]
             [loom.graph :as loom])
-  (:import (org.jgrapht Graph Graphs)))
+  (:import (org.jgrapht Graph GraphType Graphs)))
 
 (defn- directed? [^Graph g]
   (.. g getType isDirected))
@@ -53,27 +53,36 @@
   (let [[u v w] edge]
     (.addVertex g u)
     (.addVertex g v)
-    (.addEdge g u v)
-    (when (some? w)
-      (when-not (weighted? g)
-        (throw (not-weighted g :add-edges*)))
-      (.setEdgeWeight g u v (double w)))
+    (let [added (.addEdge g u v)]
+      (when (some? w)
+        (when-not (weighted? g)
+          (throw (not-weighted g :add-edges*)))
+        ;; Set the weight on the edge object so that parallel edges keep their
+        ;; own weight. `addEdge` returns nil when the edge is already there and
+        ;; the graph rejects parallel edges; the vertex pair is unambiguous
+        ;; then.
+        (if (some? added)
+          (.setEdgeWeight g added (double w))
+          (.setEdgeWeight g u v (double w)))))
     g))
 
 (defn- transpose-graph ^Graph [^Graph g]
   (ensure-directed g :transpose)
   (let [weighted? (weighted? g)
-        tg (if weighted?
-             (core/weighted-digraph)
-             (core/digraph))]
+        ^GraphType gtype (.getType g)
+        tg (core/make-graph
+            {:directed? true
+             :weighted? weighted?
+             :allow-multiple-edges? (.isAllowingMultipleEdges gtype)
+             :allow-self-loops? (.isAllowingSelfLoops gtype)})]
     (doseq [v (.vertexSet g)]
       (.addVertex tg v))
     (doseq [e (.edgeSet g)]
       (let [u (.getEdgeSource g e)
-            v (.getEdgeTarget g e)]
-        (.addEdge tg v u)
-        (when weighted?
-          (.setEdgeWeight tg v u (.getEdgeWeight g e)))))
+            v (.getEdgeTarget g e)
+            added (.addEdge tg v u)]
+        (when (and weighted? (some? added))
+          (.setEdgeWeight tg added (.getEdgeWeight g e)))))
     tg))
 
 (extend-type Graph
