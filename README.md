@@ -2,7 +2,7 @@
 
 [![Clojars Project](https://img.shields.io/clojars/v/net.clojars.savya/cljgrapht.svg)](https://clojars.org/net.clojars.savya/cljgrapht)
 [![cljdoc](https://cljdoc.org/badge/net.clojars.savya/cljgrapht)](https://cljdoc.org/d/net.clojars.savya/cljgrapht)
-[![test](https://github.com/jsavyasachi/cljgrapht/actions/workflows/test.yml/badge.svg)](https://github.com/jsavyasachi/cljgrapht/actions/workflows/test.yml)
+[![test](https://github.com/savyalabs/cljgrapht/actions/workflows/test.yml/badge.svg)](https://github.com/savyalabs/cljgrapht/actions/workflows/test.yml)
 
 A Clojure graph library that uses [JGraphT](https://jgrapht.org/). You build
 graphs over plain Clojure values, run JGraphT's algorithms, and get plain

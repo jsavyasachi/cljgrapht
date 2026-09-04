@@ -24,12 +24,12 @@
                 :version version
                 :basis @basis
                 :src-dirs ["src"]
-                :scm {:url "https://github.com/jsavyasachi/cljgrapht"
-                      :connection "scm:git:https://github.com/jsavyasachi/cljgrapht.git"
-                      :developerConnection "scm:git:ssh://git@github.com/jsavyasachi/cljgrapht.git"
+                :scm {:url "https://github.com/savyalabs/cljgrapht"
+                      :connection "scm:git:https://github.com/savyalabs/cljgrapht.git"
+                      :developerConnection "scm:git:ssh://git@github.com/savyalabs/cljgrapht.git"
                       :tag (str "v" version)}
                 :pom-data [[:description "Idiomatic Clojure graph library backed by JGraphT: fast algorithms over Clojure-value vertices"]
-                           [:url "https://github.com/jsavyasachi/cljgrapht"]
+                           [:url "https://github.com/savyalabs/cljgrapht"]
                            [:licenses
                             [:license
                              [:name "Eclipse Public License 2.0"]
